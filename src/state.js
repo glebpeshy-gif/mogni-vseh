@@ -1,4 +1,5 @@
-import { UPGRADES, ENEMIES, BOSSES, PLAYER_STAGES, BALANCE, WHEEL, BOT_NAMES } from './data.js';
+import { UPGRADES, ENEMIES, BOSSES, PLAYER_STAGES, BALANCE, WHEEL } from './data.js';
+import { t, upgradeName, wheelText, botNames } from './i18n.js';
 import * as sdk from './sdk.js';
 
 const KEY = 'mogni-vseh-save-v1';
@@ -9,7 +10,7 @@ export const state = {
   level: 0,
   kills: 0,
   upgrades: {},
-  muted: false,
+  settings: { lang: null, sfx: true, music: true, vibro: true, shake: true },
   savedAt: 0,
   firstPlay: 0,
   effects: [],   // временные бонусы: { id, type, mult, rate, until, text }
@@ -58,8 +59,8 @@ export function activeEffects() {
   return state.effects;
 }
 
-export function addEffect(effect, text, id = null) {
-  state.effects.push({ ...effect, id, text, until: Date.now() + effect.sec * 1000 });
+export function addEffect(effect, id = null) {
+  state.effects.push({ ...effect, id, until: Date.now() + effect.sec * 1000 });
 }
 
 export const hasEffect = (id) => activeEffects().some((e) => e.id === id);
@@ -107,10 +108,10 @@ export function applyPrize(prize) {
     const pool = UPGRADES.filter((u) => !isMaxed(u));
     const u = pool[Math.floor(Math.random() * pool.length)];
     state.upgrades[u.id] = lvl(u.id) + 1;
-    return `${u.emoji} ${u.name} +1 ур.`;
+    return t('prize_upgrade', { e: u.emoji, name: upgradeName(u.id) });
   }
-  addEffect(prize.effect, prize.text);
-  return prize.text;
+  addEffect(prize.effect);
+  return wheelText(prize.id);
 }
 
 // ---------- таблица лидеров (боты + игрок) ----------
@@ -126,10 +127,11 @@ function rng(seed) {
 
 export function leaderboard() {
   const rand = rng(1337);
-  const n = BOT_NAMES.length;
+  const names = botNames();
+  const n = names.length;
   const days = Math.max(0, (Date.now() - (state.firstPlay || Date.now())) / 86400000);
   const grow = 1 + 0.05 * days; // боты тоже «качаются» со временем
-  const list = BOT_NAMES.map((name, k) => {
+  const list = names.map((name, k) => {
     const exp = 1.6 + 8.1 * Math.pow(k / (n - 1), 1.2);
     return { name, score: Math.floor(Math.pow(10, exp) * (0.8 + 0.45 * rand()) * grow) };
   });
@@ -181,8 +183,8 @@ export function buy(u) {
 // ---------- сохранения ----------
 
 function snapshot() {
-  const { aura, totalAura, level, kills, upgrades, muted, firstPlay, effects, wheel } = state;
-  return { aura, totalAura, level, kills, upgrades, muted, firstPlay, effects, wheel, savedAt: Date.now() };
+  const { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel } = state;
+  return { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel, savedAt: Date.now() };
 }
 
 // Требование 1.9: прогресс сохраняется сразу после действия.
@@ -234,7 +236,11 @@ export async function load() {
     state.firstPlay = Date.now();
     return 0;
   }
+  const settings = { ...state.settings, ...data.settings };
+  if (data.muted) { settings.sfx = false; settings.music = false; } // старые сохранения
+  delete data.muted;
   Object.assign(state, data, {
+    settings,
     upgrades: { ...data.upgrades },
     effects: data.effects || [],
     wheel: data.wheel || state.wheel,
@@ -244,6 +250,15 @@ export async function load() {
   const sec = Math.min((Date.now() - data.savedAt) / 1000, BALANCE.offlineMaxSec);
   const { dps } = stats();
   return sec > 60 ? Math.floor(dps * sec * BALANCE.offlineRatio) : 0;
+}
+
+// Сброс всего прогресса (настройки остаются)
+export function resetProgress() {
+  Object.assign(state, {
+    aura: 0, totalAura: 0, level: 0, kills: 0, upgrades: {}, effects: [],
+    firstPlay: Date.now(), wheel: { day: '', freeUsed: false, ads: 0 },
+  });
+  saveNow();
 }
 
 export function format(n) {

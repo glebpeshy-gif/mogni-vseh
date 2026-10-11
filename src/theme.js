@@ -1,6 +1,7 @@
 // Оформление: неоновые цвета, шрифты и общие элементы интерфейса
 import * as Phaser from 'phaser';
 import * as sdk from './sdk.js';
+import { t } from './i18n.js';
 
 export const COLORS = {
   bgTop: '#2a0a5e',
@@ -89,6 +90,14 @@ export function button(scene, x, y, w, h, label, color, onClick, { size = 24, te
 // Модальное окно: затемнение + карточка + крестик. Возвращает { box, panel, close }
 // Пока окно открыто, бой стоит на паузе (GameplayAPI.stop).
 // onX — своё действие на крестик (по умолчанию просто закрыть)
+const modalStack = [];
+
+// Esc на компьютере закрывает верхнее окно
+export function closeTopModal() {
+  const top = modalStack[modalStack.length - 1];
+  if (top) top();
+}
+
 export function modal(scene, w, h, title, { onClose, onX } = {}) {
   sdk.menu(true);
   const box = scene.add.container(0, 0).setDepth(200);
@@ -109,12 +118,15 @@ export function modal(scene, w, h, title, { onClose, onX } = {}) {
   const close = () => {
     if (closed) return;
     closed = true;
+    modalStack.splice(modalStack.indexOf(onEsc), 1);
     sdk.menu(false);
     onClose?.();
     scene.tweens.add({ targets: panel, scale: 0.7, alpha: 0, duration: 150, onComplete: () => box.destroy() });
     shade.disableInteractive();
   };
-  x.on('pointerdown', () => (onX ? onX() : close()));
+  const onEsc = () => (onX ? onX() : close());
+  modalStack.push(onEsc);
+  x.on('pointerdown', onEsc);
   return { box, panel, close };
 }
 
@@ -132,23 +144,6 @@ export function pop(scene, x, y, str, size, color = HEX.white, rise = 100) {
 
 // Фон и служебные текстуры генерируются в коде — без файлов
 export function makeTextures(scene) {
-  if (!scene.textures.exists('bg_gradient')) {
-    const tex = scene.textures.createCanvas('bg_gradient', 720, 1280);
-    const ctx = tex.getContext();
-    const grad = ctx.createLinearGradient(0, 0, 0, 1280);
-    grad.addColorStop(0, COLORS.bgTop);
-    grad.addColorStop(0.55, '#1a0d4f');
-    grad.addColorStop(1, COLORS.bgBottom);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 720, 1280);
-    // неоновое пятно за соперником
-    const glow = ctx.createRadialGradient(360, 450, 20, 360, 450, 380);
-    glow.addColorStop(0, 'rgba(255,46,151,0.45)');
-    glow.addColorStop(1, 'rgba(255,46,151,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, 720, 900);
-    tex.refresh();
-  }
   if (!scene.textures.exists('dot')) {
     const tex = scene.textures.createCanvas('dot', 24, 24);
     const ctx = tex.getContext();
@@ -185,7 +180,65 @@ export function toast(scene, str) {
 // Показать рекламу за награду; true — награду можно выдавать
 export async function askReward(scene) {
   const r = await sdk.showRewarded();
-  if (r === 'skipped') toast(scene, 'Досмотри рекламу до конца, чтобы получить награду');
-  else if (r === 'error') toast(scene, 'Реклама сейчас недоступна, попробуй чуть позже');
+  if (r === 'skipped') toast(scene, t('ad_skipped'));
+  else if (r === 'error') toast(scene, t('ad_error'));
   return r === 'ok';
 }
+
+// Фон соперника: градиент + свечение за персонажем + узор + виньетка
+export function makeBgTexture(scene, key, bg, boss = false) {
+  if (scene.textures.exists(key)) return key;
+  const W = 720, H = 1280;
+  const tex = scene.textures.createCanvas(key, W, H);
+  const ctx = tex.getContext();
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, bg.top);
+  grad.addColorStop(1, bg.bottom);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#ffffff';
+  if (bg.pattern === 'stripes') {
+    ctx.lineWidth = 26;
+    for (let x = -H; x < W + H; x += 90) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + H * 0.6, H); ctx.stroke();
+    }
+  } else if (bg.pattern === 'dots') {
+    for (let y = 20; y < H; y += 46) {
+      for (let x = (y / 46) % 2 ? 20 : 43; x < W; x += 46) {
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  } else if (bg.pattern === 'grid') {
+    ctx.lineWidth = 2;
+    for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  }
+  ctx.restore();
+
+  const glow = ctx.createRadialGradient(360, 470, 10, 360, 470, boss ? 460 : 380);
+  glow.addColorStop(0, hexA(bg.glow, boss ? 0.6 : 0.45));
+  glow.addColorStop(1, hexA(bg.glow, 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  const vig = ctx.createRadialGradient(360, 560, 300, 360, 560, 900);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, `rgba(0,0,0,${boss ? 0.65 : 0.4})`);
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+
+  tex.refresh();
+  return key;
+}
+
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+export const hexToInt = (hex) => parseInt(hex.slice(1), 16);

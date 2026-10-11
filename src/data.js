@@ -1,44 +1,47 @@
 // Все игровые данные в одном месте — баланс правится здесь.
-// emoji — временная картинка, пока нет файла в src/art/
+// Названия и тексты — в i18n.js. emoji — временная картинка, пока нет файла в src/art/
+//
+// bg — фон соперника: градиент сверху вниз, цвет свечения и стикеры на фоне.
+// pattern: stripes / dots / grid — узор поверх градиента.
 
 export const ENEMIES = [
-  { id: 'normis',    name: 'Нормис Петя',      emoji: '😐' },
-  { id: 'tiktoker',  name: 'Тиктокер',         emoji: '🤳' },
-  { id: 'streamer',  name: 'Стример',          emoji: '🎧' },
-  { id: 'otlichnik', name: 'Отличник',         emoji: '🤓' },
-  { id: 'kachok',    name: 'Качок из зала',    emoji: '💪' },
-  { id: 'fizruk',    name: 'Физрук',           emoji: '📣' },
-  { id: 'animetyan', name: 'Аниме-тян',        emoji: '🌸' },
-  { id: 'cat',       name: 'Кот-модель',       emoji: '😼' },
-  { id: 'bloger',    name: 'Блогер-миллионер', emoji: '💸' },
+  { id: 'normis',    emoji: '😐', bg: { top: '#3b4266', bottom: '#151827', glow: '#8fa3ff', pattern: 'grid',    stickers: ['😐', '📄', '☕', '🥱', '💤'] } },
+  { id: 'tiktoker',  emoji: '🤳', bg: { top: '#4a0a3a', bottom: '#03343a', glow: '#ff2e7a', pattern: 'stripes', stickers: ['🤳', '🎵', '💃', '📱', '❤️'] } },
+  { id: 'streamer',  emoji: '🎧', bg: { top: '#3b1f7a', bottom: '#0d0a22', glow: '#9146ff', pattern: 'grid',    stickers: ['🎮', '🎧', '💬', '🕹️', '🔴'] } },
+  { id: 'otlichnik', emoji: '🤓', bg: { top: '#1f5a40', bottom: '#0a1f17', glow: '#b6ff3b', pattern: 'grid',    stickers: ['📚', '✏️', '📐', '🧮', '💯'] } },
+  { id: 'kachok',    emoji: '💪', bg: { top: '#6a1d0b', bottom: '#1a0804', glow: '#ff8a3d', pattern: 'stripes', stickers: ['🏋️', '💪', '🥩', '🔥', '🥤'] } },
+  { id: 'fizruk',    emoji: '📣', bg: { top: '#155a35', bottom: '#06200f', glow: '#ffe14d', pattern: 'stripes', stickers: ['📣', '⚽', '🏀', '⏱️', '🥇'] } },
+  { id: 'animetyan', emoji: '🌸', bg: { top: '#6b1f58', bottom: '#1e0b2e', glow: '#ffb7e0', pattern: 'dots',    stickers: ['🌸', '✨', '🎀', '💖', '🍡'] } },
+  { id: 'cat',       emoji: '😼', bg: { top: '#5a3f15', bottom: '#160e04', glow: '#ffd27a', pattern: 'dots',    stickers: ['🐟', '🧶', '🐾', '😼', '🥛'] } },
+  { id: 'bloger',    emoji: '💸', bg: { top: '#0f4a39', bottom: '#03140f', glow: '#3dff9a', pattern: 'dots',    stickers: ['💸', '💰', '🤑', '💎', '📈'] } },
 ];
 
 export const BOSSES = [
-  { id: 'boss_sigma',    name: 'Сигма-босс',  emoji: '🗿' },
-  { id: 'boss_gigachad', name: 'Гигачад',     emoji: '🦍' },
-  { id: 'boss_king',     name: 'Король ауры', emoji: '👑' },
+  { id: 'boss_sigma',    emoji: '🗿', bg: { top: '#2a0a0a', bottom: '#000000', glow: '#ff2e2e', pattern: 'stripes', stickers: ['🗿', '🕶️', '⚡', '🍷', '💀'] } },
+  { id: 'boss_gigachad', emoji: '🦍', bg: { top: '#3a3a3a', bottom: '#050505', glow: '#ffffff', pattern: 'stripes', stickers: ['🦍', '💪', '🗿', '🔥', '🏆'] } },
+  { id: 'boss_king',     emoji: '👑', bg: { top: '#4a3300', bottom: '#120b00', glow: '#ffd700', pattern: 'dots',    stickers: ['👑', '💎', '✨', '🏆', '💰'] } },
 ];
 
 // type: tap — сила тапа, dps — автомог в секунду,
 //       crit — шанс крита, mult — множитель всего урона
 export const UPGRADES = [
-  { id: 'mewing',  name: 'Мьюинг',       emoji: '👅', type: 'tap',  value: 1,    baseCost: 10,    growth: 1.15 },
-  { id: 'gym',     name: 'Качалка',      emoji: '🏋️', type: 'dps',  value: 1,    baseCost: 40,    growth: 1.15 },
-  { id: 'jaw',     name: 'Челюсть',      emoji: '🦴', type: 'tap',  value: 6,    baseCost: 150,   growth: 1.17 },
-  { id: 'eyes',    name: 'Хантер-айз',   emoji: '👁️', type: 'crit', value: 0.02, baseCost: 300,   growth: 1.6, max: 25 },
-  { id: 'subs',    name: 'Подписчики',   emoji: '📱', type: 'dps',  value: 10,   baseCost: 900,   growth: 1.17 },
-  { id: 'hair',    name: 'Причёска',     emoji: '💇', type: 'tap',  value: 45,   baseCost: 3000,  growth: 1.19 },
-  { id: 'photo',   name: 'Фотосессия',   emoji: '📸', type: 'dps',  value: 80,   baseCost: 15000, growth: 1.19 },
-  { id: 'outfit',  name: 'Гардероб',     emoji: '🧥', type: 'mult', value: 1.3,  baseCost: 5000,  growth: 2.2 },
+  { id: 'mewing', emoji: '👅', type: 'tap',  value: 1,    baseCost: 10,    growth: 1.15 },
+  { id: 'gym',    emoji: '🏋️', type: 'dps',  value: 1,    baseCost: 40,    growth: 1.15 },
+  { id: 'jaw',    emoji: '🦴', type: 'tap',  value: 6,    baseCost: 150,   growth: 1.17 },
+  { id: 'eyes',   emoji: '👁️', type: 'crit', value: 0.02, baseCost: 300,   growth: 1.6, max: 25 },
+  { id: 'subs',   emoji: '📱', type: 'dps',  value: 10,   baseCost: 900,   growth: 1.17 },
+  { id: 'hair',   emoji: '💇', type: 'tap',  value: 45,   baseCost: 3000,  growth: 1.19 },
+  { id: 'photo',  emoji: '📸', type: 'dps',  value: 80,   baseCost: 15000, growth: 1.19 },
+  { id: 'outfit', emoji: '🧥', type: 'mult', value: 1.3,  baseCost: 5000,  growth: 2.2 },
 ];
 
 // Внешность игрока меняется от суммы уровней прокачки
 export const PLAYER_STAGES = [
-  { from: 0,   name: 'Нормис',    emoji: '😐' },
-  { from: 10,  name: 'Мьюер',     emoji: '🙂' },
-  { from: 30,  name: 'Красавчик', emoji: '😏' },
-  { from: 60,  name: 'Чад',       emoji: '😎' },
-  { from: 110, name: 'Гигачад',   emoji: '🗿' },
+  { from: 0,   emoji: '😐' },
+  { from: 10,  emoji: '🙂' },
+  { from: 30,  emoji: '😏' },
+  { from: 60,  emoji: '😎' },
+  { from: 110, emoji: '🗿' },
 ];
 
 export const BALANCE = {
@@ -54,7 +57,7 @@ export const BALANCE = {
   offlineMaxSec: 2 * 60 * 60,
   offlineRatio: 0.5,
   adBoostSec: 60,
-  bossRetryBonus: 15, // +секунд к таймеру босса за рекламу
+  bossRetryBonus: 15,  // +секунд к таймеру босса за рекламу
   wheelAdSpins: 3,     // доп. прокрутов колеса за рекламу в день
 };
 
@@ -62,27 +65,14 @@ export const BALANCE = {
 // effect.type: tap / dps / all — множитель, crit — каждый тап крит, autotap — автотапы в секунду
 // aura — сколько наград за текущего соперника выдать
 export const WHEEL = [
-  { label: '×3\nТАП',      text: '×3 к тапу на 30 сек',         color: 0xff2e97, weight: 18, effect: { type: 'tap', mult: 3, sec: 30 } },
-  { label: '+\nАУРА',      text: 'Пачка ауры',                  color: 0xffe14d, weight: 20, aura: 5 },
-  { label: '×5\nАВТО',     text: '×5 автомог на 30 сек',        color: 0x29f0ff, weight: 15, effect: { type: 'dps', mult: 5, sec: 30 } },
-  { label: '100%\nКРИТ',   text: 'Каждый тап — крит, 30 сек',   color: 0xb6ff3b, weight: 12, effect: { type: 'crit', sec: 30 } },
-  { label: 'МОГ\nШТОРМ',   text: 'Мог-шторм: автотапы 20 сек',  color: 0x8b5cff, weight: 12, effect: { type: 'autotap', rate: 12, sec: 20 } },
-  { label: '+1\nАПГРЕЙД', text: '+1 уровень случайной прокачки', color: 0xff8a3d, weight: 12, upgrade: true },
-  { label: 'МЕГА\nАУРА',   text: 'МЕГА-пачка ауры',             color: 0xff2e97, weight: 8,  aura: 25 },
-  { label: 'ДЖЕК\nПОТ',    text: 'ДЖЕКПОТ: ×10 ко всему, 15 сек', color: 0xffffff, weight: 3,  effect: { type: 'all', mult: 10, sec: 15 } },
+  { id: 'tap3',    color: 0xff2e97, weight: 18, effect: { type: 'tap', mult: 3, sec: 30 } },
+  { id: 'aura',    color: 0xffe14d, weight: 20, aura: 5 },
+  { id: 'dps5',    color: 0x29f0ff, weight: 15, effect: { type: 'dps', mult: 5, sec: 30 } },
+  { id: 'crit',    color: 0xb6ff3b, weight: 12, effect: { type: 'crit', sec: 30 } },
+  { id: 'storm',   color: 0x8b5cff, weight: 12, effect: { type: 'autotap', rate: 12, sec: 20 } },
+  { id: 'upgrade', color: 0xff8a3d, weight: 12, upgrade: true },
+  { id: 'mega',    color: 0xff2e97, weight: 8,  aura: 25 },
+  { id: 'jackpot', color: 0xffffff, weight: 3,  effect: { type: 'all', mult: 10, sec: 15 } },
 ];
 
 export const EFFECT_ICONS = { tap: '👆', dps: '⚙️', all: '💎', crit: '💥', autotap: '🌪️' };
-
-// Ники ботов для таблицы лидеров
-export const BOT_NAMES = [
-  'сигма_2011', 'Ауроед', 'МьюингБог', 'gigachad777', 'Тимоха_Скуф', 'НеНормис', 'lil_mog',
-  'Ксюша_Глоу', 'АураФарм', 'Красавчик9Б', 'jawline_king', 'Дашуля💅', 'мистер_рофл', 'ХантерАйз',
-  'вайб_чекер', 'Сеня_Чад', 'ДокторМьюинг', 'кринж_хантер', 'Rizzler_RU', 'Мегамозг', 'аура_минус',
-  'Лёха_Скибид', 'NPC_Игорь', 'Мама_Сигмы', 'glow_up_2026', 'ВаняРизз', 'котик_морган', 'Димон_мог',
-  'just_mewing', 'ЛуксМакс', 'Полина_Слэй', 'xX_Мог_Xx', 'бро_ну_ты_чё', 'дед_инсайд', 'Арсений_Пик',
-  'Слэйер3000', 'Ника_Вайб', 'омега_нормис', 'Чадович', 'ты_замоган',
-];
-
-export const TAP_PHRASES = ['МОГ', 'АУРА', '-самооценка', 'мьюинг', 'РИЗЗ', 'слэй', 'глоу ап', '-вайб'];
-export const KILL_PHRASES = ['ЗАМОГАН!', 'ОН NPC', 'АУРА ФАРМ', 'ГГ ИЗИ', 'МИНУС АУРА', 'КРИНЖ', 'СЛЭЙ!'];

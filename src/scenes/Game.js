@@ -1,31 +1,39 @@
 import * as Phaser from 'phaser';
-import { UPGRADES, BALANCE, TAP_PHRASES, KILL_PHRASES, EFFECT_ICONS } from '../data.js';
+import { UPGRADES, BALANCE, EFFECT_ICONS } from '../data.js';
 import {
   state, stats, cost, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
   isBoss, playerStage, addAura, save, format, activeEffects, addEffect, hasEffect, wheelStatus,
 } from '../state.js';
-import { COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures, modal, askReward } from '../theme.js';
+import {
+  COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures, makeBgTexture, hexToInt,
+  modal, askReward, closeTopModal,
+} from '../theme.js';
+import { t, enemyName, upgradeName, stageName, phrases } from '../i18n.js';
 import { openWheel } from '../features/wheel.js';
 import { openLeaderboard } from '../features/leaderboard.js';
+import { openSettings, applySettings, vibrate } from '../features/settings.js';
 import * as sdk from '../sdk.js';
 import * as sound from '../sound.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const STICKERS = ['💀', '🔥', '✨', '💅', '🗿', '💯', '😎', '👑', '⚡', '🤙'];
 const CONFETTI = [COLORS.pink, COLORS.lime, COLORS.cyan, COLORS.yellow, COLORS.purple];
 const ENEMY_Y = 470;
 
 export default class Game extends Phaser.Scene {
   constructor() { super('Game'); }
 
-  init(data) { this.offline = data.offline || 0; }
+  init(data) { this.offline = data?.offline || 0; }
 
   create() {
+    document.title = t('title');
     makeTextures(this);
+    applySettings();
+    this.bgId = null;
     this.createBackground();
     this.createHud();
     this.createArena();
     this.createUpgrades();
+    this.createControls();
     this.spawnEnemy();
 
     this.autoAcc = 0;
@@ -34,42 +42,43 @@ export default class Game extends Phaser.Scene {
     this.time.addEvent({ delay: 10000, loop: true, callback: () => save() });
     this.refresh();
 
-    sound.setMuted(state.muted);
-
     // Реклама / пауза платформы / свёрнутая вкладка — игра полностью замирает
-    const off = sdk.onPauseChange((paused) => {
+    // Плашка «Пауза» — когда игра потеряла фокус (во время рекламы её не видно)
+    this.pauseOverlay = this.add.container(0, 0).setDepth(1000).setVisible(false);
+    this.pauseOverlay.add([
+      this.add.rectangle(360, 640, 720, 1280, 0x05010f, 0.7),
+      txt(this, 360, 600, t('paused'), 64, HEX.yellow).setOrigin(0.5),
+      body(this, 360, 680, t('paused_hint'), 28, HEX.white).setOrigin(0.5),
+    ]);
+    const onPause = (paused) => {
+      this.pauseOverlay.setVisible(paused && !sdk.isAdBusy());
       if (paused) this.scene.pause(); else this.scene.resume();
-    });
+    };
+    const off = sdk.onPauseChange(onPause);
     this.events.once('shutdown', off);
-    if (sdk.isPaused()) this.scene.pause();
+    if (sdk.isPaused()) onPause(true);
 
     sdk.ready();
     if (this.offline > 0) this.showOffline(this.offline);
   }
 
-  // ---------- фон ----------
+  // Перезапуск после смены языка или сброса прогресса
+  restart() {
+    save();
+    this.scene.restart({ offline: 0 });
+  }
+
+  shake(ms, power) { if (state.settings.shake) this.cameras.main.shake(ms, power); }
+  flash(ms, r, g, b) { if (state.settings.shake) this.cameras.main.flash(ms, r, g, b); }
+
+  // ---------- фон: свой у каждого соперника ----------
 
   createBackground() {
-    this.add.image(360, 640, this.textures.exists('bg') ? 'bg' : 'bg_gradient').setDisplaySize(720, 1280);
-
-    // плавающие стикеры-эмодзи
-    for (let i = 0; i < 14; i++) {
-      const s = emoji(this, Phaser.Math.Between(20, 700), Phaser.Math.Between(140, 720), pick(STICKERS), Phaser.Math.Between(34, 60))
-        .setAlpha(0.13).setAngle(Phaser.Math.Between(-25, 25));
-      this.tweens.add({
-        targets: s, y: s.y - Phaser.Math.Between(20, 50), angle: s.angle + Phaser.Math.Between(-15, 15),
-        duration: Phaser.Math.Between(2500, 4500), yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
-      });
-    }
+    this.bgLayer = this.add.container(0, 0);
+    this.stickerLayer = null;
 
     // вращающиеся лучи за соперником
     this.rays = this.add.graphics({ x: 360, y: ENEMY_Y });
-    for (let i = 0; i < 16; i++) {
-      const a0 = (i / 16) * Math.PI * 2;
-      const a1 = a0 + Math.PI / 16;
-      this.rays.fillStyle(i % 2 ? COLORS.pink : COLORS.purple, 0.16);
-      this.rays.fillTriangle(0, 0, Math.cos(a0) * 520, Math.sin(a0) * 520, Math.cos(a1) * 520, Math.sin(a1) * 520);
-    }
     this.tweens.add({ targets: this.rays, angle: 360, duration: 24000, repeat: -1 });
 
     this.confetti = this.add.particles(0, 0, 'star', {
@@ -83,20 +92,65 @@ export default class Game extends Phaser.Scene {
     }).setDepth(120);
   }
 
+  setBackground(e, boss) {
+    if (this.bgId === e.id) return;
+    this.bgId = e.id;
+    const bg = e.bg;
+
+    // своя картинка src/art/bg/<id>.png важнее сгенерированного фона
+    const key = this.textures.exists(`bgimg_${e.id}`)
+      ? `bgimg_${e.id}`
+      : this.textures.exists('bg') ? 'bg' : makeBgTexture(this, `bg_${e.id}`, bg, boss);
+    const img = this.add.image(360, 640, key).setDisplaySize(720, 1280).setAlpha(0);
+    const old = [...this.bgLayer.list];
+    this.bgLayer.add(img);
+    this.tweens.add({
+      targets: img, alpha: 1, duration: 450,
+      onComplete: () => old.forEach((o) => o.destroy()),
+    });
+
+    // стикеры по теме соперника
+    const prev = this.stickerLayer;
+    if (prev) this.tweens.add({ targets: prev, alpha: 0, duration: 300, onComplete: () => prev.destroy() });
+    this.stickerLayer = this.add.container(0, 0).setAlpha(0);
+    this.children.moveAbove(this.stickerLayer, this.bgLayer);
+    for (let i = 0; i < 14; i++) {
+      const s = emoji(this, Phaser.Math.Between(20, 700), Phaser.Math.Between(140, 720), pick(bg.stickers), Phaser.Math.Between(34, 62))
+        .setAlpha(boss ? 0.2 : 0.15).setAngle(Phaser.Math.Between(-25, 25));
+      this.tweens.add({
+        targets: s, y: s.y - Phaser.Math.Between(20, 50), angle: s.angle + Phaser.Math.Between(-15, 15),
+        duration: Phaser.Math.Between(2500, 4500), yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      this.stickerLayer.add(s);
+    }
+    this.tweens.add({ targets: this.stickerLayer, alpha: 1, duration: 450 });
+
+    // лучи в цвет свечения
+    const glow = hexToInt(bg.glow);
+    this.rays.clear();
+    for (let i = 0; i < 16; i++) {
+      const a0 = (i / 16) * Math.PI * 2;
+      const a1 = a0 + Math.PI / 16;
+      this.rays.fillStyle(glow, i % 2 ? (boss ? 0.22 : 0.14) : 0.06);
+      this.rays.fillTriangle(0, 0, Math.cos(a0) * 560, Math.sin(a0) * 560, Math.cos(a1) * 560, Math.sin(a1) * 560);
+    }
+    this.children.moveAbove(this.rays, this.stickerLayer);
+
+    // поля по бокам на широком экране — в цвет фона
+    document.body.style.background = `linear-gradient(${bg.top}, ${bg.bottom})`;
+  }
+
   // ---------- верхняя панель ----------
 
   createHud() {
     this.auraText = txt(this, 360, 52, '', 56, HEX.yellow).setOrigin(0.5);
     this.statsText = body(this, 360, 102, '', 20, HEX.soft).setOrigin(0.5);
 
-    const mute = emoji(this, 680, 44, '', 34).setInteractive({ useHandCursor: true });
-    const upd = () => mute.setText(state.muted ? '🔇' : '🔊');
-    upd();
-    mute.on('pointerdown', () => {
-      state.muted = !state.muted;
-      sound.setMuted(state.muted);
-      upd();
-      save();
+    const gear = emoji(this, 672, 46, '⚙️', 40).setInteractive({ useHandCursor: true });
+    gear.on('pointerdown', () => {
+      sound.click();
+      this.tweens.add({ targets: gear, angle: gear.angle + 90, duration: 200 });
+      openSettings(this, { onRestart: () => this.restart() });
     });
   }
 
@@ -112,6 +166,7 @@ export default class Game extends Phaser.Scene {
     c.add([g, ic, lb, hit]);
     hit.on('pointerdown', () => {
       this.tweens.add({ targets: c, scale: 0.88, duration: 70, yoyo: true });
+      sound.click();
       onClick();
     });
     return c;
@@ -129,7 +184,7 @@ export default class Game extends Phaser.Scene {
     this.timerText = txt(this, 360, 280, '', 30, '#ff5a7a').setOrigin(0.5);
 
     // вся верхняя часть экрана — зона тапа
-    this.zone = this.add.zone(360, 450, 720, 560).setInteractive();
+    this.zone = this.add.zone(360, 450, 720, 560).setInteractive({ useHandCursor: true });
     this.zone.on('pointerdown', (p) => this.onTap(p));
 
     this.enemyHolder = this.add.container(360, ENEMY_Y);
@@ -138,12 +193,12 @@ export default class Game extends Phaser.Scene {
     this.tweens.add({ targets: this.enemyBob, y: -10, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // боковые кнопки
-    this.roundButton(64, 330, '🏆', 'ТОП', COLORS.cyan, () => openLeaderboard(this));
-    this.wheelBtn = this.roundButton(656, 330, '🎰', 'КОЛЕСО', COLORS.pink, () => {
-      openWheel(this, { onPrize: (p, text) => this.onWheelPrize(p, text), onClose: () => this.refresh() });
+    this.roundButton(64, 330, '🏆', t('btn_top'), COLORS.cyan, () => openLeaderboard(this));
+    this.wheelBtn = this.roundButton(656, 330, '🎰', t('btn_wheel'), COLORS.pink, () => {
+      openWheel(this, { onPrize: () => this.onWheelPrize(), onClose: () => this.refresh() });
     });
-    this.wheelBadge = txt(this, 34, -36, '!', 22).setOrigin(0.5);
     const badgeBg = this.add.circle(34, -36, 16, 0xff3355).setStrokeStyle(3, COLORS.ink);
+    this.wheelBadge = txt(this, 34, -36, '!', 22).setOrigin(0.5);
     this.wheelBtn.add([badgeBg, this.wheelBadge]);
     this.wheelBadgeBg = badgeBg;
     this.tweens.add({ targets: [badgeBg, this.wheelBadge], scale: 1.25, duration: 450, yoyo: true, repeat: -1 });
@@ -166,19 +221,50 @@ export default class Game extends Phaser.Scene {
     const g = this.add.graphics({ x: 360, y: 1012 });
     g.fillStyle(COLORS.pink, 1).fillRoundedRect(-360, -280, 720, 600, 36);
     g.fillStyle(COLORS.card, 1).fillRoundedRect(-360, -274, 720, 600, 36);
-    txt(this, 360, 768, '💎 ЛУКСМАКСИНГ', 28, HEX.pink).setOrigin(0.5);
+    txt(this, 360, 768, t('looksmax'), 28, HEX.pink).setOrigin(0.5);
 
+    const desktop = sdk.isDesktop();
     this.rows = UPGRADES.map((u, i) => {
       const y = 822 + i * 57;
       const card = this.add.graphics({ x: 360, y });
       drawCard(card, 690, 50, 0x2a185e, { radius: 16, depth: 3 });
-      const circle = this.add.circle(40, y, 21, COLORS.ink);
+      this.add.circle(40, y, 21, COLORS.ink);
       emoji(this, 40, y, u.emoji, 26);
-      txt(this, 72, y - 11, u.name, 18).setOrigin(0, 0.5);
+      if (desktop) txt(this, 22, y - 18, String(i + 1), 13, HEX.yellow).setOrigin(0.5);
+      txt(this, 72, y - 11, upgradeName(u.id), 18).setOrigin(0, 0.5);
       const info = body(this, 72, y + 13, '', 15, '#a99be0').setOrigin(0, 0.5);
       const btn = button(this, 616, y - 2, 150, 42, '', COLORS.lime, () => this.onBuy(u, btn), { size: 17, textColor: HEX.ink });
       btn.label.setStroke('#ffffff', 0);
-      return { u, info, btn, circle };
+      return { u, info, btn };
+    });
+  }
+
+  // ---------- управление: телефон и компьютер ----------
+
+  createControls() {
+    // звук можно включить только после первого действия игрока
+    this.input.on('pointerdown', () => sound.unlock());
+
+    if (sdk.isDesktop()) {
+      body(this, 360, 722, t('desktop_hint'), 15, '#d8cfff', { stroke: HEX.ink, strokeThickness: 4 })
+        .setOrigin(0.5).setAlpha(0.8);
+    }
+
+    this.input.keyboard?.on('keydown', (ev) => {
+      if (ev.repeat) return; // зажатая клавиша — не автокликер
+      sound.unlock();
+      if (ev.code === 'Escape') { closeTopModal(); return; }
+      if (sdk.inMenu()) return;
+      if (ev.code === 'Space' || ev.code === 'Enter') {
+        ev.preventDefault?.();
+        this.onTap({ x: 360 + Phaser.Math.Between(-110, 110), y: ENEMY_Y + Phaser.Math.Between(-110, 90) });
+        return;
+      }
+      const n = Number(ev.key);
+      if (n >= 1 && n <= this.rows.length) {
+        const row = this.rows[n - 1];
+        this.onBuy(row.u, row.btn);
+      }
     });
   }
 
@@ -188,9 +274,9 @@ export default class Game extends Phaser.Scene {
       img.baseScale = size / Math.max(img.width, img.height);
       return img.setScale(img.baseScale);
     }
-    const t = emoji(this, 0, 0, emo, Math.round(size * 0.8));
-    t.baseScale = 1;
-    return t;
+    const tx = emoji(this, 0, 0, emo, Math.round(size * 0.8));
+    tx.baseScale = 1;
+    return tx;
   }
 
   // ---------- игровой цикл ----------
@@ -203,19 +289,20 @@ export default class Game extends Phaser.Scene {
     this.dying = false;
     this.bossLeft = boss ? BALANCE.bossTime + bonusTime : 0;
 
+    this.setBackground(e, boss);
+
     this.enemyBob.removeAll(true);
     this.enemyHolder.setAlpha(1).setAngle(0).setScale(0);
     this.enemyArt = this.makeArt(`enemy_${e.id}`, e.emoji, boss ? 360 : 290);
     this.enemyBob.add(this.enemyArt);
     this.tweens.add({ targets: this.enemyHolder, scale: 1, duration: 320, ease: 'Back.easeOut' });
 
-    this.levelText.setText(`${boss ? '🔥 БОСС · ' : ''}УР. ${state.level + 1} · ${e.name.toUpperCase()}`);
+    this.levelText.setText(`${boss ? t('boss_tag') : ''}${t('level', { n: state.level + 1 })} · ${enemyName(e.id).toUpperCase()}`);
     this.levelText.setColor(boss ? '#ff5a7a' : HEX.white);
     this.timerText.setText('');
-    this.rays.setAlpha(boss ? 1.8 : 1);
     if (boss) {
-      this.cameras.main.flash(200, 255, 46, 151);
-      pop(this, 360, 380, 'БОСС!', 72, '#ff5a7a', 80);
+      this.flash(200, 255, 46, 151);
+      pop(this, 360, 380, t('boss_pop'), 72, '#ff5a7a', 80);
     }
     this.updateHp();
   }
@@ -228,12 +315,12 @@ export default class Game extends Phaser.Scene {
 
     if (crit) {
       if (!auto || Math.random() < 0.3) sound.crit();
-      pop(this, p.x, p.y - 30, `КРИТ!\n-${format(dmg)}`, 34, HEX.yellow, 120);
-      if (!auto) this.cameras.main.shake(80, 0.006);
+      pop(this, p.x, p.y - 30, `${t('crit')}\n-${format(dmg)}`, 34, HEX.yellow, 120);
+      if (!auto) { this.shake(80, 0.006); vibrate(12); }
     } else {
       if (!auto || Math.random() < 0.4) sound.tap();
       pop(this, p.x, p.y - 20, `-${format(dmg)}`, 30, HEX.white, 90);
-      if (!auto && Math.random() < 0.12) pop(this, p.x + Phaser.Math.Between(-90, 90), p.y - 70, pick(TAP_PHRASES), 22, HEX.lime);
+      if (!auto && Math.random() < 0.12) pop(this, p.x + Phaser.Math.Between(-90, 90), p.y - 70, pick(phrases().tap), 22, HEX.lime);
     }
     this.sparks.explode(crit ? 14 : 6, p.x, p.y);
 
@@ -285,7 +372,7 @@ export default class Game extends Phaser.Scene {
       this.hpBar.fillStyle(COLORS.pink, 1).fillRoundedRect(0, -14, w, 28, 14);
       this.hpBar.fillStyle(0xffffff, 0.3).fillRoundedRect(6, -11, w - 12, 9, 5);
     }
-    this.hpText.setText(`САМООЦЕНКА ${format(Math.max(0, Math.ceil(this.hp)))} / ${format(this.maxHp)}`);
+    this.hpText.setText(t('hp', { a: format(Math.max(0, Math.ceil(this.hp))), b: format(this.maxHp) }));
   }
 
   defeat() {
@@ -297,8 +384,9 @@ export default class Game extends Phaser.Scene {
     state.level++;
 
     sound.kill();
+    vibrate(wasBoss ? [60, 40, 60] : 25);
     this.confetti.explode(wasBoss ? 70 : 30, 360, ENEMY_Y);
-    pop(this, 360, 340, pick(KILL_PHRASES), wasBoss ? 62 : 50, HEX.pink, 140);
+    pop(this, 360, 340, pick(phrases().kill), wasBoss ? 62 : 50, HEX.pink, 140);
     pop(this, 360, 450, `+${format(reward)} ✨`, 40, HEX.yellow, 120);
     this.timerText.setText('');
 
@@ -317,6 +405,7 @@ export default class Game extends Phaser.Scene {
   bossFailed() {
     this.dying = true;
     sound.fail();
+    vibrate(200);
     this.tweens.add({
       targets: this.enemyHolder, alpha: 0.25, duration: 400,
       onComplete: () => this.showBossResult(false),
@@ -338,7 +427,7 @@ export default class Game extends Phaser.Scene {
     };
 
     const { panel, close } = modal(this, 620, win ? 520 : 640,
-      win ? '🔥 БОСС ЗАМОГАН!' : '💀 НЕ ХВАТИЛО АУРЫ', { onX: () => next() });
+      win ? t('boss_win') : t('boss_lose'), { onX: () => next() });
 
     if (win) {
       panel.add(emoji(this, 0, -80, '🗿', 110));
@@ -347,19 +436,19 @@ export default class Game extends Phaser.Scene {
       sound.prize();
     } else {
       panel.add(emoji(this, 0, -150, '😵', 90));
-      panel.add(body(this, 0, -50, 'Босс оказался сильнее.\nПрокачай луксмаксинг и возвращайся!', 24, HEX.soft, { align: 'center' }).setOrigin(0.5));
+      panel.add(body(this, 0, -50, t('boss_lose_text'), 24, HEX.soft, { align: 'center' }).setOrigin(0.5));
       // Награда за рекламу — бонус, а не обязательное условие (требование 4.5.2)
-      const retry = button(this, 0, 60, 520, 84, `📺 РЕКЛАМА: +${BALANCE.bossRetryBonus} СЕК\nИ ЕЩЁ ПОПЫТКА`, COLORS.purple, async () => {
+      const retry = button(this, 0, 60, 540, 84, t('boss_retry_ad', { s: BALANCE.bossRetryBonus }), COLORS.purple, async () => {
         if (done || !retry.enabled) return;
         retry.setEnabled(false);
         if (await askReward(this)) next(true);
         else retry.setEnabled(true);
-      }, { size: 21 });
+      }, { size: 20 });
       panel.add(retry);
     }
 
     // Кнопка активна через секунду, чтобы игрок не нажал её случайно, продолжая тапать
-    const go = button(this, 0, win ? 170 : 175, 360, 84, win ? 'ДАЛЕЕ ▶' : 'ПОНЯЛ ▶', COLORS.lime, () => {
+    const go = button(this, 0, win ? 170 : 175, 360, 84, win ? t('next') : t('got_it'), COLORS.lime, () => {
       if (go.enabled) next();
     }, { size: 28, textColor: HEX.ink });
     go.label.setStroke('#ffffff', 0);
@@ -371,7 +460,9 @@ export default class Game extends Phaser.Scene {
   onBuy(u, btn) {
     if (buy(u)) {
       sound.buy();
-      pop(this, btn.x, btn.y - 24, '+1 УР.', 20, HEX.lime, 50);
+      vibrate(10);
+      pop(this, btn.x, btn.y - 24, t('plus_lvl'), 20, HEX.lime, 50);
+      this.tweens.add({ targets: btn, scaleX: 0.93, scaleY: 0.9, duration: 60, yoyo: true });
       this.refresh();
       save();
     } else {
@@ -383,15 +474,15 @@ export default class Game extends Phaser.Scene {
   async watchBoost() {
     if (hasEffect('ad') || sdk.isAdBusy()) return;
     if (await askReward(this)) {
-      addEffect({ type: 'all', mult: 2, sec: BALANCE.adBoostSec }, '×2 мог', 'ad');
+      addEffect({ type: 'all', mult: 2, sec: BALANCE.adBoostSec }, 'ad');
       save();
       sound.buy();
-      pop(this, 360, 500, 'МОГ ×2!', 56, HEX.purple, 120);
+      pop(this, 360, 500, t('mog_x2'), 56, HEX.purple, 120);
       this.refresh();
     }
   }
 
-  onWheelPrize(prize) {
+  onWheelPrize() {
     this.confetti.explode(60, 360, 300);
     this.refresh();
   }
@@ -400,31 +491,34 @@ export default class Game extends Phaser.Scene {
     const s = stats();
     this.auraText.setText(`✨ ${format(state.aura)}`);
     this.statsText.setText(
-      `👆 ${format(s.tap)}   ⚙️ ${format(s.dps)}/с` +
+      `👆 ${format(s.tap)}   ⚙️ ${format(s.dps)}${t('per_sec')}` +
       (s.crit > 0 && s.crit < 1 ? `   💥 ${Math.round(s.crit * 100)}%` : ''),
     );
 
     // активные эффекты
     const now = Date.now();
     this.effectsText.setText(activeEffects()
-      .map((e) => `${EFFECT_ICONS[e.type] || '✨'} ${e.type === 'crit' ? '100% крит' : e.type === 'autotap' ? 'шторм' : `×${e.mult}`} ${Math.ceil((e.until - now) / 1000)}с`)
+      .map((e) => {
+        const what = e.type === 'crit' ? t('eff_crit') : e.type === 'autotap' ? t('eff_storm') : `×${e.mult}`;
+        return `${EFFECT_ICONS[e.type] || '✨'} ${what} ${Math.ceil((e.until - now) / 1000)}${t('sec')}`;
+      })
       .join('   '));
 
     for (const { u, info, btn } of this.rows) {
       const l = lvl(u.id);
       const maxed = isMaxed(u);
       const c = cost(u);
-      btn.setLabel(maxed ? 'МАКС' : `✨ ${format(c)}`);
+      btn.setLabel(maxed ? t('max') : `✨ ${format(c)}`);
       btn.setEnabled(!maxed && state.aura >= c);
       btn.label.setColor(btn.enabled ? HEX.ink : '#9a90c0');
-      info.setText(`ур. ${l} · ${this.describe(u, l)}`);
+      info.setText(`${t('up_lvl', { n: l })} · ${this.describe(u, l)}`);
     }
 
     const ad = activeEffects().find((e) => e.id === 'ad');
     if (ad) {
-      this.boostBtn.setLabel(`×2 МОГ\nещё ${Math.ceil((ad.until - now) / 1000)} сек`).setEnabled(false);
+      this.boostBtn.setLabel(t('boost_active', { s: Math.ceil((ad.until - now) / 1000) })).setEnabled(false);
     } else {
-      this.boostBtn.setLabel('📺 РЕКЛАМА:\n×2 МОГ 60 СЕК').setEnabled(true);
+      this.boostBtn.setLabel(t('boost_ad')).setEnabled(true);
     }
 
     const free = wheelStatus().free;
@@ -436,10 +530,10 @@ export default class Game extends Phaser.Scene {
 
   describe(u, l) {
     switch (u.type) {
-      case 'tap': return `+${u.value} к тапу`;
-      case 'dps': return `+${u.value} автомог/с`;
-      case 'crit': return `шанс крита ×${BALANCE.critMult}: ${Math.round(u.value * l * 100)}%`;
-      case 'mult': return `×${u.value} ко всему (сейчас ×${Math.pow(u.value, l).toFixed(2)})`;
+      case 'tap': return t('up_tap', { v: u.value });
+      case 'dps': return t('up_dps', { v: u.value });
+      case 'crit': return t('up_crit', { m: BALANCE.critMult, p: Math.round(u.value * l * 100) });
+      case 'mult': return t('up_mult', { v: u.value, c: Math.pow(u.value, l).toFixed(2) });
       default: return '';
     }
   }
@@ -449,16 +543,18 @@ export default class Game extends Phaser.Scene {
     if (st.index === this.playerStageIndex) return;
     const upgraded = this.playerStageIndex >= 0;
     this.playerStageIndex = st.index;
+    const name = stageName(st.index).toUpperCase();
 
     this.playerHolder.removeAll(true);
     this.playerHolder.add(this.makeArt(`player_${st.index + 1}`, st.emoji, 110));
-    this.playerName.setText(`ТЫ: ${st.name.toUpperCase()}`);
+    this.playerName.setText(t('you_stage', { s: name })).setScale(1);
+    this.playerName.setScale(Math.min(1, 170 / this.playerName.width)); // длинные имена ужимаем
 
     if (upgraded) {
       this.playerHolder.setScale(0);
       this.tweens.add({ targets: this.playerHolder, scale: 1, duration: 600, ease: 'Elastic.easeOut' });
       this.confetti.explode(40, 92, 620);
-      pop(this, 360, 560, `ГЛОУ АП!\n${st.name.toUpperCase()}`, 40, HEX.lime, 120);
+      pop(this, 360, 560, t('glowup', { s: name }), 40, HEX.lime, 120);
       sound.prize();
     }
   }
@@ -466,7 +562,7 @@ export default class Game extends Phaser.Scene {
   showOffline(amount) {
     let busy = false;
     let taken = false;
-    const { panel, close } = modal(this, 620, 500, 'ПОКА ТЕБЯ НЕ БЫЛО', { onX: () => take(1) });
+    const { panel, close } = modal(this, 620, 500, t('offline_title'), { onX: () => take(1) });
     const take = (mult) => {
       if (taken || (busy && mult === 1)) return;
       taken = true;
@@ -477,16 +573,16 @@ export default class Game extends Phaser.Scene {
       save();
     };
 
-    panel.add(body(this, 0, -110, 'ты намогал', 26, HEX.soft).setOrigin(0.5));
+    panel.add(body(this, 0, -110, t('offline_text'), 26, HEX.soft).setOrigin(0.5));
     panel.add(txt(this, 0, -30, `✨ ${format(amount)}`, 62, HEX.yellow).setOrigin(0.5));
-    const double = button(this, 0, 90, 520, 84, '📺 РЕКЛАМА: ЗАБРАТЬ ×2', COLORS.purple, async () => {
+    const double = button(this, 0, 90, 540, 84, t('offline_ad'), COLORS.purple, async () => {
       if (busy) return;
       busy = true;
       double.setEnabled(false);
       if (await askReward(this)) take(2);
       else { busy = false; double.setEnabled(true); }
-    }, { size: 22 });
-    const one = button(this, 0, 190, 360, 76, 'ЗАБРАТЬ', COLORS.lime, () => take(1), { size: 24, textColor: HEX.ink });
+    }, { size: 21 });
+    const one = button(this, 0, 190, 360, 76, t('take'), COLORS.lime, () => take(1), { size: 24, textColor: HEX.ink });
     one.label.setStroke('#ffffff', 0);
     panel.add([double, one]);
   }

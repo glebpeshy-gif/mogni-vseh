@@ -102,7 +102,14 @@ export function ready() {
 }
 ready.done = false;
 
-export const lang = () => ysdk?.environment?.i18n?.lang || 'ru';
+// Язык интерфейса Яндекс Игр (требование 2.14). Локально — язык браузера.
+export const lang = () => ysdk?.environment?.i18n?.lang || (navigator.language || 'ru').slice(0, 2);
+
+// Компьютер или телефон — чтобы показать подсказки по клавиатуре
+export function isDesktop() {
+  try { if (ysdk?.deviceInfo) return ysdk.deviceInfo.isDesktop(); } catch {}
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
 
 // Время сервера Яндекса (защита ежедневного колеса от перевода часов)
 export const now = () => {

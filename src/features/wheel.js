@@ -4,6 +4,7 @@ import { WHEEL } from '../data.js';
 import { wheelStatus, useSpin, rollWheel, applyPrize, msToMidnight, save } from '../state.js';
 import { COLORS, HEX, txt, body, button, modal, pop, emoji, askReward } from '../theme.js';
 import * as sound from '../sound.js';
+import { t, wheelLabel } from '../i18n.js';
 
 const R = 235;
 const SEG = 360 / WHEEL.length;
@@ -20,7 +21,7 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
   let angle = 0; // накопленный угол (без обрезки до ±180)
 
   const timer = scene.time.addEvent({ delay: 500, loop: true, callback: () => updateStatus() });
-  const { panel, close } = modal(scene, 650, 960, '🎰 КОЛЕСО АУРЫ', {
+  const { panel, close } = modal(scene, 650, 960, t('wheel_title'), {
     onClose: () => { timer.remove(); onClose?.(); },
   });
 
@@ -43,10 +44,10 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
   WHEEL.forEach((p, i) => {
     const a = Phaser.Math.DegToRad(-90 + i * SEG);
     const dark = LIGHT.includes(p.color);
-    const t = txt(scene, Math.cos(a) * R * 0.66, Math.sin(a) * R * 0.66, p.label, 22,
+    const label = txt(scene, Math.cos(a) * R * 0.66, Math.sin(a) * R * 0.66, wheelLabel(p.id), 21,
       dark ? HEX.ink : HEX.white, { stroke: dark ? '#ffffff' : HEX.ink, strokeThickness: dark ? 0 : 5, lineSpacing: -4 })
       .setOrigin(0.5).setAngle(i * SEG);
-    wheel.add(t);
+    wheel.add(label);
   });
 
   // лампочки по краю
@@ -72,24 +73,24 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
   // ----- кнопка и статус -----
   const status = body(scene, 0, 262, '', 22, HEX.soft, { align: 'center' }).setOrigin(0.5);
   const btn = button(scene, 0, 345, 520, 92, '', COLORS.lime, () => onButton(), { size: 28, textColor: HEX.ink });
-  const hint = body(scene, 0, 420, 'Бесплатный спин — каждый день', 18, '#8f84c2').setOrigin(0.5);
+  const hint = body(scene, 0, 420, t('wheel_hint_daily'), 18, '#8f84c2').setOrigin(0.5);
   panel.add([status, btn, hint]);
 
   function updateStatus() {
     if (spinning) return;
     const s = wheelStatus();
     if (s.free) {
-      btn.setColor(COLORS.lime).setEnabled(true).setLabel('КРУТИТЬ БЕСПЛАТНО');
+      btn.setColor(COLORS.lime).setEnabled(true).setLabel(t('wheel_free'));
       btn.label.setColor(HEX.ink).setStroke('#ffffff', 0);
-      hint.setText('Бесплатный спин — каждый день');
+      hint.setText(t('wheel_hint_daily'));
     } else if (s.adsLeft > 0) {
-      btn.setColor(COLORS.purple).setEnabled(true).setLabel(`📺 СПИН ЗА РЕКЛАМУ (${s.adsLeft})`);
+      btn.setColor(COLORS.purple).setEnabled(true).setLabel(t('wheel_ad', { n: s.adsLeft }));
       btn.label.setColor(HEX.white).setStroke(HEX.ink, 6);
-      hint.setText(`Новый бесплатный спин через ${hhmmss(msToMidnight())}`);
+      hint.setText(t('wheel_hint_next', { t: hhmmss(msToMidnight()) }));
     } else {
-      btn.setEnabled(false).setLabel('ПРИХОДИ ЗАВТРА');
+      btn.setEnabled(false).setLabel(t('wheel_tomorrow'));
       btn.label.setColor(HEX.white).setStroke(HEX.ink, 6);
-      hint.setText(`Новый бесплатный спин через ${hhmmss(msToMidnight())}`);
+      hint.setText(t('wheel_hint_next', { t: hhmmss(msToMidnight()) }));
     }
   }
 
@@ -110,7 +111,7 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
 
   function spin() {
     spinning = true;
-    btn.setEnabled(false).setLabel('КРУТИМ...');
+    btn.setEnabled(false).setLabel(t('wheel_spinning'));
     status.setText('');
 
     const i = rollWheel();
@@ -138,7 +139,7 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
         const text = applyPrize(prize);
         save();
         sound.prize();
-        pop(scene, 360, 600, 'ВЫПАЛО!', 56, HEX.yellow, 140);
+        pop(scene, 360, 600, t('wheel_won'), 56, HEX.yellow, 140);
         status.setText(text).setColor(HEX.lime).setFontSize(26);
         scene.tweens.add({ targets: status, scale: { from: 1.4, to: 1 }, duration: 300, ease: 'Back.easeOut' });
         onPrize?.(prize, text);

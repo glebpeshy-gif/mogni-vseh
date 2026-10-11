@@ -8,15 +8,16 @@ export default class Boot extends Phaser.Scene {
   constructor() { super('Boot'); }
 
   preload() {
-    this.add.text(360, 640, 'Загрузка...', { fontFamily: 'Arial', fontSize: '40px', color: '#fff' }).setOrigin(0.5);
+    this.add.text(360, 640, '⏳', { fontFamily: 'Arial', fontSize: '40px', color: '#fff' }).setOrigin(0.5);
 
     // Берём только картинки, которые реально лежат в src/art — недостающих персонажей заменит эмодзи
     for (const [path, url] of Object.entries(ART)) {
-      const m = path.match(/art\/(?:(enemies|player)\/)?([\w-]+)\.png$/);
+      const m = path.match(/art\/(?:(enemies|player|bg)\/)?([\w-]+)\.png$/);
       if (!m) continue;
       const [, dir, name] = m;
       if (dir === 'enemies') this.load.image(`enemy_${name}`, url);
       else if (dir === 'player') this.load.image(`player_${name.replace('stage', '')}`, url);
+      else if (dir === 'bg') this.load.image(`bgimg_${name}`, url);
       else if (name === 'bg') this.load.image('bg', url);
     }
   }
