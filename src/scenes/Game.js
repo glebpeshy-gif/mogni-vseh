@@ -1,8 +1,10 @@
 import * as Phaser from 'phaser';
 import { UPGRADES, BALANCE, EFFECT_ICONS } from '../data.js';
 import {
-  state, stats, cost, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
+  state, stats, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
   isBoss, playerStage, addAura, save, format, activeEffects, addEffect, hasEffect, wheelStatus,
+  buyPlan, cycleBuyMode, prestigeGain, catchGolden, track, trackMax, tasksClaimable, loginStatus,
+  sigmaMult, nextMilestone,
 } from '../state.js';
 import {
   COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures, makeBgTexture, hexToInt,
@@ -12,6 +14,8 @@ import { t, enemyName, upgradeName, stageName, phrases } from '../i18n.js';
 import { openWheel } from '../features/wheel.js';
 import { openLeaderboard } from '../features/leaderboard.js';
 import { openSettings, applySettings, vibrate } from '../features/settings.js';
+import { openTasks, openLogin } from '../features/daily.js';
+import { openPrestige } from '../features/prestige.js';
 import * as sdk from '../sdk.js';
 import * as sound from '../sound.js';
 
@@ -22,7 +26,10 @@ const ENEMY_Y = 470;
 export default class Game extends Phaser.Scene {
   constructor() { super('Game'); }
 
-  init(data) { this.offline = data?.offline || 0; }
+  init(data) {
+    this.offline = data?.offline || 0;
+    this.rebirthGot = data?.rebirth || 0;
+  }
 
   create() {
     document.title = t('title');
@@ -59,13 +66,30 @@ export default class Game extends Phaser.Scene {
     if (sdk.isPaused()) onPause(true);
 
     sdk.ready();
-    if (this.offline > 0) this.showOffline(this.offline);
+    this.combo = 0;
+    this.lastTapAt = 0;
+    this.scheduleGolden();
+    this.startPopups();
+    if (this.rebirthGot) {
+      pop(this, 360, 500, t('rebirth_done', { n: this.rebirthGot }), 60, HEX.lime, 140);
+      this.confetti.explode(80, 360, 500);
+      sound.prize();
+    }
+  }
+
+  // Окна при входе по очереди: офлайн-доход → серия дней
+  startPopups() {
+    const login = () => {
+      if (loginStatus().claimable) openLogin(this, { onDone: () => this.refresh() });
+    };
+    if (this.offline > 0) this.showOffline(this.offline, login);
+    else login();
   }
 
   // Перезапуск после смены языка или сброса прогресса
-  restart() {
+  restart(extra = {}) {
     save();
-    this.scene.restart({ offline: 0 });
+    this.scene.restart({ offline: 0, ...extra });
   }
 
   shake(ms, power) { if (state.settings.shake) this.cameras.main.shake(ms, power); }
@@ -153,6 +177,14 @@ export default class Game extends Phaser.Scene {
     });
   }
 
+  addBadge(btn) {
+    const bg = this.add.circle(34, -36, 16, 0xff3355).setStrokeStyle(3, COLORS.ink);
+    const mark = txt(this, 34, -36, '!', 22).setOrigin(0.5);
+    btn.add([bg, mark]);
+    this.tweens.add({ targets: [bg, mark], scale: 1.25, duration: 450, yoyo: true, repeat: -1 });
+    return { setVisible: (v) => { bg.setVisible(v); mark.setVisible(v); } };
+  }
+
   roundButton(x, y, icon, label, color, onClick) {
     const c = this.add.container(x, y).setDepth(20);
     const g = this.add.graphics();
@@ -202,6 +234,16 @@ export default class Game extends Phaser.Scene {
     this.wheelBadgeBg = badgeBg;
     this.tweens.add({ targets: [badgeBg, this.wheelBadge], scale: 1.25, duration: 450, yoyo: true, repeat: -1 });
 
+    this.tasksBtn = this.roundButton(64, 460, '📋', t('btn_tasks'), COLORS.lime, () => openTasks(this, { onChange: () => this.refresh() }));
+    this.tasksBadge = this.addBadge(this.tasksBtn);
+    this.prestigeBtn = this.roundButton(656, 460, '🗿', t('btn_rebirth'), COLORS.purple, () => openPrestige(this, {
+      onRebirth: (got) => this.restart({ rebirth: got }),
+    }));
+    this.prestigeBadge = this.addBadge(this.prestigeBtn);
+
+    // комбо
+    this.comboText = txt(this, 340, 676, '', 24, HEX.yellow).setOrigin(0.5).setDepth(30).setAlpha(0);
+
     // игрок
     this.playerFrame = this.add.graphics({ x: 92, y: 620 });
     this.playerFrame.fillStyle(COLORS.ink, 0.9).fillCircle(0, 5, 66);
@@ -220,7 +262,14 @@ export default class Game extends Phaser.Scene {
     const g = this.add.graphics({ x: 360, y: 1012 });
     g.fillStyle(COLORS.pink, 1).fillRoundedRect(-360, -280, 720, 600, 36);
     g.fillStyle(COLORS.card, 1).fillRoundedRect(-360, -274, 720, 600, 36);
-    txt(this, 360, 768, t('looksmax'), 28, HEX.pink).setOrigin(0.5);
+    txt(this, 330, 768, t('looksmax'), 28, HEX.pink).setOrigin(0.5);
+    this.modeBtn = button(this, 640, 766, 104, 44, '', COLORS.yellow, () => {
+      cycleBuyMode();
+      sound.click();
+      this.refresh();
+      save();
+    }, { size: 18, textColor: HEX.ink });
+    this.modeBtn.label.setStroke('#ffffff', 0);
 
     const desktop = sdk.isDesktop();
     this.rows = UPGRADES.map((u, i) => {
@@ -306,11 +355,25 @@ export default class Game extends Phaser.Scene {
     this.updateHp();
   }
 
+  comboMult() {
+    for (const [from, m] of BALANCE.combo) if (this.combo >= from) return m;
+    return 1;
+  }
+
   onTap(p, auto = false) {
     if (this.dying || sdk.inMenu()) return;
     const s = stats();
     const crit = Math.random() < s.crit;
-    const dmg = s.tap * (crit ? BALANCE.critMult : 1);
+    if (!auto) {
+      const now = this.time.now;
+      const before = this.comboMult();
+      this.combo = now - this.lastTapAt < BALANCE.comboWindow ? this.combo + 1 : 1;
+      this.lastTapAt = now;
+      track('taps');
+      trackMax('combo', this.combo);
+      this.updateCombo(this.comboMult() > before);
+    }
+    const dmg = s.tap * (crit ? BALANCE.critMult : 1) * (auto ? 1 : this.comboMult());
 
     if (crit) {
       if (!auto || Math.random() < 0.3) sound.crit();
@@ -335,7 +398,22 @@ export default class Game extends Phaser.Scene {
     this.damage(dmg);
   }
 
+  updateCombo(levelUp) {
+    if (this.combo < 5) { this.comboText.setAlpha(0); return; }
+    const m = this.comboMult();
+    this.comboText.setText(`🔥 ${m > 1 ? t('combo', { m }) + ' · ' : ''}${this.combo}`).setAlpha(1)
+      .setColor(m >= 3 ? '#ff4fa3' : m >= 2 ? HEX.lime : HEX.yellow);
+    if (levelUp) {
+      this.tweens.add({ targets: this.comboText, scale: { from: 1.6, to: 1 }, duration: 250, ease: 'Back.easeOut' });
+      sound.buy();
+    }
+  }
+
   tick(dt) {
+    if (this.combo > 0 && this.time.now - this.lastTapAt > BALANCE.comboWindow) {
+      this.combo = 0;
+      this.tweens.add({ targets: this.comboText, alpha: 0, duration: 250 });
+    }
     if (this.dying || sdk.inMenu()) return;
     const s = stats();
     if (s.dps > 0) this.damage(s.dps * dt);
@@ -381,6 +459,8 @@ export default class Game extends Phaser.Scene {
     addAura(reward);
     state.kills++;
     state.level++;
+    track('kills');
+    if (wasBoss) track('boss');
 
     sound.kill();
     vibrate(wasBoss ? [60, 40, 60] : 25);
@@ -457,10 +537,17 @@ export default class Game extends Phaser.Scene {
   }
 
   onBuy(u, btn) {
-    if (buy(u)) {
+    const before = lvl(u.id);
+    const n = buy(u);
+    if (n) {
       sound.buy();
       vibrate(10);
-      pop(this, btn.x, btn.y - 24, t('plus_lvl'), 20, HEX.lime, 50);
+      pop(this, btn.x, btn.y - 24, n > 1 ? `+${n}` : t('plus_lvl'), 20, HEX.lime, 50);
+      if (Math.floor(lvl(u.id) / BALANCE.milestoneEvery) > Math.floor(before / BALANCE.milestoneEvery)) {
+        pop(this, 360, 600, `⭐ ${upgradeName(u.id).toUpperCase()} ×2!`, 40, HEX.yellow, 120);
+        this.confetti.explode(40, 360, 600);
+        sound.prize();
+      }
       this.tweens.add({ targets: btn, scaleX: 0.93, scaleY: 0.9, duration: 60, yoyo: true });
       this.refresh();
       save();
@@ -491,7 +578,8 @@ export default class Game extends Phaser.Scene {
     this.auraText.setText(`✨ ${format(state.aura)}`);
     this.statsText.setText(
       `👆 ${format(s.tap)}   ⚙️ ${format(s.dps)}${t('per_sec')}` +
-      (s.crit > 0 && s.crit < 1 ? `   💥 ${Math.round(s.crit * 100)}%` : ''),
+      (s.crit > 0 && s.crit < 1 ? `   💥 ${Math.round(s.crit * 100)}%` : '') +
+      (state.sigma > 0 ? `   ${t('sigma_stat', { p: Math.round((sigmaMult() - 1) * 100) })}` : ''),
     );
 
     // активные эффекты
@@ -503,14 +591,16 @@ export default class Game extends Phaser.Scene {
       })
       .join('   '));
 
+    this.modeBtn.setLabel(state.buyMode === 'max' ? 'MAX' : `×${state.buyMode}`);
     for (const { u, info, btn } of this.rows) {
       const l = lvl(u.id);
       const maxed = isMaxed(u);
-      const c = cost(u);
-      btn.setLabel(maxed ? t('max') : `✨ ${format(c)}`);
-      btn.setEnabled(!maxed && state.aura >= c);
+      const { n, price } = buyPlan(u);
+      btn.setLabel(maxed ? t('max') : `${n > 1 ? `×${n} ` : ''}✨${format(price)}`);
+      btn.setEnabled(!maxed && state.aura >= price);
       btn.label.setColor(btn.enabled ? HEX.ink : '#9a90c0');
-      info.setText(`${t('up_lvl', { n: l })} · ${this.describe(u, l)}`);
+      const ms = (u.type === 'tap' || u.type === 'dps') ? ` · ${t('milestone', { n: nextMilestone(l) })}` : '';
+      info.setText(`${t('up_lvl', { n: l })} · ${this.describe(u, l)}${ms}`);
     }
 
     const ad = activeEffects().find((e) => e.id === 'ad');
@@ -523,6 +613,8 @@ export default class Game extends Phaser.Scene {
     const free = wheelStatus().free;
     this.wheelBadge.setVisible(free);
     this.wheelBadgeBg.setVisible(free);
+    this.tasksBadge.setVisible(tasksClaimable());
+    this.prestigeBadge.setVisible(prestigeGain() > 0);
 
     this.updatePlayer();
   }
@@ -558,10 +650,56 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  showOffline(amount) {
+  // ---------- золотая аура (как «золотое печенье») ----------
+
+  scheduleGolden() {
+    this.time.delayedCall(Phaser.Math.Between(BALANCE.goldenMin, BALANCE.goldenMax) * 1000, () => this.spawnGolden());
+  }
+
+  spawnGolden() {
+    if (sdk.inMenu() || this.dying) { this.time.delayedCall(5000, () => this.spawnGolden()); return; }
+    const fromLeft = Math.random() < 0.5;
+    const y = Phaser.Math.Between(300, 620);
+    const c = this.add.container(fromLeft ? 140 : 580, y).setDepth(60).setScale(0);
+    const glow = this.add.circle(0, 0, 58, COLORS.yellow, 0.35);
+    const ring = this.add.circle(0, 0, 44, 0xffd23f).setStrokeStyle(5, 0xffffff);
+    const icon = emoji(this, 0, -2, '✨', 52);
+    const hit = this.add.zone(0, 0, 130, 130).setInteractive({ useHandCursor: true });
+    c.add([glow, ring, icon, hit]);
+
+    this.tweens.add({ targets: c, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: glow, scale: 1.4, alpha: 0.1, duration: 600, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: c, angle: { from: -10, to: 10 }, duration: 700, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: c, x: fromLeft ? 580 : 140, y: y + Phaser.Math.Between(-80, 80), duration: BALANCE.goldenLife * 1000, ease: 'Sine.easeInOut' });
+
+    let done = false;
+    const vanish = () => {
+      if (done) return;
+      done = true;
+      this.tweens.add({ targets: c, scale: 0, alpha: 0, duration: 250, onComplete: () => c.destroy() });
+      this.scheduleGolden();
+    };
+    this.time.delayedCall(BALANCE.goldenLife * 1000, vanish);
+
+    hit.on('pointerdown', () => {
+      if (done) return;
+      const r = catchGolden();
+      sound.prize();
+      vibrate([30, 30, 30]);
+      this.confetti.explode(50, c.x, c.y);
+      pop(this, c.x, c.y - 40, t('golden_pop'), 36, HEX.yellow, 100);
+      const text = r.id === 'pack' ? t('golden_pack', { n: format(r.amount) }) : r.id === 'frenzy' ? t('golden_frenzy') : t('golden_storm');
+      pop(this, 360, 560, text, 44, HEX.lime, 120);
+      vanish();
+      save();
+      this.refresh();
+    });
+  }
+
+  showOffline(amount, onDone) {
     let busy = false;
     let taken = false;
-    const { panel, close } = modal(this, 620, 500, t('offline_title'), { onX: () => take(1) });
+    const { panel, close } = modal(this, 620, 500, t('offline_title'), { onX: () => take(1), onClose: onDone });
     const take = (mult) => {
       if (taken || (busy && mult === 1)) return;
       taken = true;

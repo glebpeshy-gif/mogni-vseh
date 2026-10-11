@@ -23,4 +23,8 @@ const game = new Phaser.Game({
 });
 
 // Отладка: только в режиме разработки, в сборку не попадает
-if (import.meta.env.DEV) window.__dev = { game, state };
+if (import.meta.env.DEV) {
+  window.__dev = { game, state };
+  const shot = new URLSearchParams(location.search).get('shot');
+  if (shot) import('./dev/shots.js').then((m) => m.run(game, shot));
+}

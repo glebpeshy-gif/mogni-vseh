@@ -60,7 +60,42 @@ export const BALANCE = {
   adBoostSec: 60,
   bossRetryBonus: 15,  // +секунд к таймеру босса за рекламу
   wheelAdSpins: 3,     // доп. прокрутов колеса за рекламу в день
+
+  // перерождение
+  prestigeLevel: 30,   // с какого уровня можно переродиться
+  sigmaBonus: 0.1,     // +10% урона за каждое сигма-очко
+  // вехи: каждые 25 уровней улучшения его сила ×2
+  milestoneEvery: 25,
+  // комбо: тапы чаще чем раз в comboWindow мс копят серию
+  comboWindow: 650,
+  combo: [[60, 3], [30, 2], [10, 1.5]], // [от скольки тапов, множитель]
+  // золотая аура: появляется раз в 40–100 сек, живёт 9 сек
+  goldenMin: 40,
+  goldenMax: 100,
+  goldenLife: 9,
+  taskReward: 8,       // награда за задание = 8 наград за текущего соперника
 };
+
+// Что даёт пойманная золотая аура
+export const GOLDEN = [
+  { id: 'pack',   weight: 45, aura: 10 },
+  { id: 'frenzy', weight: 30, effect: { type: 'tap', mult: 7, sec: 15 } },
+  { id: 'storm',  weight: 25, effect: { type: 'autotap', rate: 15, sec: 12 } },
+];
+
+// Задания дня: каждый день выбираются 3 случайных
+export const TASKS = [
+  { id: 'kills',  need: 25 },
+  { id: 'taps',   need: 300 },
+  { id: 'buys',   need: 15 },
+  { id: 'boss',   need: 1 },
+  { id: 'spin',   need: 1 },
+  { id: 'golden', need: 1 },
+  { id: 'combo',  need: 40 },
+];
+
+// Серия дней: множитель награды (× награда за соперника) по дням 1–7; на 7-й ещё +1 сигма-очко
+export const LOGIN_REWARDS = [3, 5, 8, 12, 18, 25, 50];
 
 // Колесо ауры. weight — вероятность (чем больше, тем чаще)
 // effect.type: tap / dps / all — множитель, crit — каждый тап крит, autotap — автотапы в секунду
