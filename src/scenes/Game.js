@@ -74,11 +74,12 @@ export default class Game extends Phaser.Scene {
   // ---------- фон: свой у каждого соперника ----------
 
   createBackground() {
-    this.bgLayer = this.add.container(0, 0);
+    // Слои фона всегда под игрой: фон −30, стикеры −20, лучи −10
+    this.bgLayer = this.add.container(0, 0).setDepth(-30);
     this.stickerLayer = null;
 
     // вращающиеся лучи за соперником
-    this.rays = this.add.graphics({ x: 360, y: ENEMY_Y });
+    this.rays = this.add.graphics({ x: 360, y: ENEMY_Y }).setDepth(-10);
     this.tweens.add({ targets: this.rays, angle: 360, duration: 24000, repeat: -1 });
 
     this.confetti = this.add.particles(0, 0, 'star', {
@@ -112,8 +113,7 @@ export default class Game extends Phaser.Scene {
     // стикеры по теме соперника
     const prev = this.stickerLayer;
     if (prev) this.tweens.add({ targets: prev, alpha: 0, duration: 300, onComplete: () => prev.destroy() });
-    this.stickerLayer = this.add.container(0, 0).setAlpha(0);
-    this.children.moveAbove(this.stickerLayer, this.bgLayer);
+    this.stickerLayer = this.add.container(0, 0).setAlpha(0).setDepth(-20);
     for (let i = 0; i < 14; i++) {
       const s = emoji(this, Phaser.Math.Between(20, 700), Phaser.Math.Between(140, 720), pick(bg.stickers), Phaser.Math.Between(34, 62))
         .setAlpha(boss ? 0.2 : 0.15).setAngle(Phaser.Math.Between(-25, 25));
@@ -134,7 +134,6 @@ export default class Game extends Phaser.Scene {
       this.rays.fillStyle(glow, i % 2 ? (boss ? 0.22 : 0.14) : 0.06);
       this.rays.fillTriangle(0, 0, Math.cos(a0) * 560, Math.sin(a0) * 560, Math.cos(a1) * 560, Math.sin(a1) * 560);
     }
-    this.children.moveAbove(this.rays, this.stickerLayer);
 
     // поля по бокам на широком экране — в цвет фона
     document.body.style.background = `linear-gradient(${bg.top}, ${bg.bottom})`;
@@ -293,7 +292,7 @@ export default class Game extends Phaser.Scene {
 
     this.enemyBob.removeAll(true);
     this.enemyHolder.setAlpha(1).setAngle(0).setScale(0);
-    this.enemyArt = this.makeArt(`enemy_${e.id}`, e.emoji, boss ? 360 : 290);
+    this.enemyArt = this.makeArt(`enemy_${e.id}`, e.emoji, boss ? 400 : 340);
     this.enemyBob.add(this.enemyArt);
     this.tweens.add({ targets: this.enemyHolder, scale: 1, duration: 320, ease: 'Back.easeOut' });
 

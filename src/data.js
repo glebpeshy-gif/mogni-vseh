@@ -17,7 +17,7 @@ export const ENEMIES = [
 ];
 
 export const BOSSES = [
-  { id: 'boss_sigma',    emoji: '🗿', bg: { top: '#2a0a0a', bottom: '#000000', glow: '#ff2e2e', pattern: 'stripes', stickers: ['🗿', '🕶️', '⚡', '🍷', '💀'] } },
+  { id: 'boss_sigma',    emoji: '🗿', bg: { top: '#2a0a0a', bottom: '#000000', glow: '#ff2e2e', pattern: 'stripes', stickers: ['🗿', '🕶️', '⚡', '💼', '💀'] } },
   { id: 'boss_gigachad', emoji: '🦍', bg: { top: '#3a3a3a', bottom: '#050505', glow: '#ffffff', pattern: 'stripes', stickers: ['🦍', '💪', '🗿', '🔥', '🏆'] } },
   { id: 'boss_king',     emoji: '👑', bg: { top: '#4a3300', bottom: '#120b00', glow: '#ffd700', pattern: 'dots',    stickers: ['👑', '💎', '✨', '🏆', '💰'] } },
 ];

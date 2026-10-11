@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Стикеры — предпросмотр</title>
+<style>
+  body { margin: 0; background: #1a0d4f; font: 600 14px Arial; color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 16px; }
+  figure { margin: 0; background: #2c1a66; border-radius: 16px; padding: 8px; text-align: center; }
+  img { width: 100%; }
+</style></head>
+<body><div class="grid" id="g"></div>
+<script>
+  const names = ['enemies/normis','enemies/tiktoker','enemies/streamer','enemies/otlichnik','enemies/kachok','enemies/fizruk',
+    'enemies/animetyan','enemies/cat','enemies/bloger','enemies/boss_sigma','enemies/boss_gigachad','enemies/boss_king',
+    'player/stage1','player/stage2','player/stage3','player/stage4','player/stage5'];
+  document.getElementById('g').innerHTML = names.map((n) =>
+    `<figure><img src="/src/art/${n}.svg?${Date.now()}"><figcaption>${n}</figcaption></figure>`).join('');
+</script></body></html>
