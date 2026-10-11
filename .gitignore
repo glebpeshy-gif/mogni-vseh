@@ -2,3 +2,4 @@ node_modules
 dist
 *.zip
 tools/stickers-preview.png
+tools/new-features.png
