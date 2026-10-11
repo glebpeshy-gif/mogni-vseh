@@ -51,3 +51,5 @@ export const kill = () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 
 export const buy = () => { tone(660, 0.07, 'triangle', 0.25); tone(990, 0.1, 'triangle', 0.25, null, 0.06); };
 export const fail = () => tone(300, 0.4, 'sawtooth', 0.25, 80);
 export const deny = () => tone(140, 0.12, 'square', 0.15);
+export const tick = () => tone(1400 + Math.random() * 200, 0.03, 'square', 0.08);
+export const prize = () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.22, 'triangle', 0.25, null, i * 0.08));

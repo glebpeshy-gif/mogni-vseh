@@ -17,6 +17,11 @@ export default class Boot extends Phaser.Scene {
   }
 
   async create() {
+    // шрифты должны загрузиться до первого текста, иначе Phaser нарисует запасной
+    await Promise.all([
+      document.fonts.load('800 32px "Unbounded"', 'АБВ abc'),
+      document.fonts.load('600 32px "Rubik"', 'АБВ abc'),
+    ]).catch(() => {});
     await sdk.init();
     const offline = await load();
     this.scene.start('Game', { offline });

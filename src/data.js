@@ -42,11 +42,11 @@ export const PLAYER_STAGES = [
 ];
 
 export const BALANCE = {
-  hpBase: 10,
-  hpGrowth: 1.27,      // во сколько раз сильнее каждый следующий соперник
-  rewardRatio: 0.7,    // аура за победу = HP * rewardRatio
+  hpBase: 15,
+  hpGrowth: 1.32,      // во сколько раз сильнее каждый следующий соперник
+  rewardRatio: 0.6,    // аура за победу = HP * rewardRatio
   bossEvery: 10,       // каждый 10-й — босс
-  bossHpMult: 6,
+  bossHpMult: 8,
   bossRewardMult: 4,
   bossTime: 30,        // секунд на босса
   critMult: 5,
@@ -54,7 +54,34 @@ export const BALANCE = {
   offlineMaxSec: 2 * 60 * 60,
   offlineRatio: 0.5,
   adBoostSec: 60,
+  wheelAdSpins: 3,     // доп. прокрутов колеса за рекламу в день
 };
 
-export const TAP_PHRASES = ['МОГ', 'АУРА', '-самооценка', 'мьюинг', 'слабак'];
-export const KILL_PHRASES = ['ЗАМОГАН!', 'ЛЕГКО!', 'МИНУС АУРА', 'УНИЧТОЖЕН', 'АУРА +1000'];
+// Колесо ауры. weight — вероятность (чем больше, тем чаще)
+// effect.type: tap / dps / all — множитель, crit — каждый тап крит, autotap — автотапы в секунду
+// aura — сколько наград за текущего соперника выдать
+export const WHEEL = [
+  { label: '×3\nТАП',      text: '×3 к тапу на 30 сек',         color: 0xff2e97, weight: 18, effect: { type: 'tap', mult: 3, sec: 30 } },
+  { label: '+\nАУРА',      text: 'Пачка ауры',                  color: 0xffe14d, weight: 20, aura: 5 },
+  { label: '×5\nАВТО',     text: '×5 автомог на 30 сек',        color: 0x29f0ff, weight: 15, effect: { type: 'dps', mult: 5, sec: 30 } },
+  { label: '100%\nКРИТ',   text: 'Каждый тап — крит, 30 сек',   color: 0xb6ff3b, weight: 12, effect: { type: 'crit', sec: 30 } },
+  { label: 'МОГ\nШТОРМ',   text: 'Мог-шторм: автотапы 20 сек',  color: 0x8b5cff, weight: 12, effect: { type: 'autotap', rate: 12, sec: 20 } },
+  { label: '+1\nАПГРЕЙД', text: '+1 уровень случайной прокачки', color: 0xff8a3d, weight: 12, upgrade: true },
+  { label: 'МЕГА\nАУРА',   text: 'МЕГА-пачка ауры',             color: 0xff2e97, weight: 8,  aura: 25 },
+  { label: 'ДЖЕК\nПОТ',    text: 'ДЖЕКПОТ: ×10 ко всему, 15 сек', color: 0xffffff, weight: 3,  effect: { type: 'all', mult: 10, sec: 15 } },
+];
+
+export const EFFECT_ICONS = { tap: '👆', dps: '⚙️', all: '💎', crit: '💥', autotap: '🌪️' };
+
+// Ники ботов для таблицы лидеров
+export const BOT_NAMES = [
+  'сигма_2011', 'Ауроед', 'МьюингБог', 'gigachad777', 'Тимоха_Скуф', 'НеНормис', 'lil_mog',
+  'Ксюша_Глоу', 'АураФарм', 'Красавчик9Б', 'jawline_king', 'Дашуля💅', 'мистер_рофл', 'ХантерАйз',
+  'вайб_чекер', 'Сеня_Чад', 'ДокторМьюинг', 'кринж_хантер', 'Rizzler_RU', 'Мегамозг', 'аура_минус',
+  'Лёха_Скибид', 'NPC_Игорь', 'Мама_Сигмы', 'glow_up_2026', 'ВаняРизз', 'котик_морган', 'Димон_мог',
+  'just_mewing', 'ЛуксМакс', 'Полина_Слэй', 'xX_Мог_Xx', 'бро_ну_ты_чё', 'дед_инсайд', 'Арсений_Пик',
+  'Слэйер3000', 'Ника_Вайб', 'омега_нормис', 'Чадович', 'ты_замоган',
+];
+
+export const TAP_PHRASES = ['МОГ', 'АУРА', '-самооценка', 'мьюинг', 'РИЗЗ', 'слэй', 'глоу ап', '-вайб'];
+export const KILL_PHRASES = ['ЗАМОГАН!', 'ОН NPC', 'АУРА ФАРМ', 'ГГ ИЗИ', 'МИНУС АУРА', 'КРИНЖ', 'СЛЭЙ!'];

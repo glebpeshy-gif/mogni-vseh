@@ -1,4 +1,6 @@
 import * as Phaser from 'phaser';
+import '@fontsource/unbounded/800.css';
+import '@fontsource/rubik/600.css';
 import Boot from './scenes/Boot.js';
 import Game from './scenes/Game.js';
 
