@@ -1,5 +1,6 @@
 // Оформление: неоновые цвета, шрифты и общие элементы интерфейса
 import * as Phaser from 'phaser';
+import * as sdk from './sdk.js';
 
 export const COLORS = {
   bgTop: '#2a0a5e',
@@ -85,8 +86,11 @@ export function button(scene, x, y, w, h, label, color, onClick, { size = 24, te
   return c;
 }
 
-// Модальное окно: затемнение + карточка + крестик. Возвращает { box, close }
-export function modal(scene, w, h, title, { onClose } = {}) {
+// Модальное окно: затемнение + карточка + крестик. Возвращает { box, panel, close }
+// Пока окно открыто, бой стоит на паузе (GameplayAPI.stop).
+// onX — своё действие на крестик (по умолчанию просто закрыть)
+export function modal(scene, w, h, title, { onClose, onX } = {}) {
+  sdk.menu(true);
   const box = scene.add.container(0, 0).setDepth(200);
   const shade = scene.add.rectangle(360, 640, 720, 1280, 0x05010f, 0.82).setInteractive();
   const panel = scene.add.container(360, 640);
@@ -101,12 +105,16 @@ export function modal(scene, w, h, title, { onClose } = {}) {
   panel.setScale(0.6).setAlpha(0);
   scene.tweens.add({ targets: panel, scale: 1, alpha: 1, duration: 260, ease: 'Back.easeOut' });
 
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
+    sdk.menu(false);
     onClose?.();
     scene.tweens.add({ targets: panel, scale: 0.7, alpha: 0, duration: 150, onComplete: () => box.destroy() });
     shade.disableInteractive();
   };
-  x.on('pointerdown', close);
+  x.on('pointerdown', () => (onX ? onX() : close()));
   return { box, panel, close };
 }
 
@@ -161,4 +169,23 @@ export function makeTextures(scene) {
     ctx.fill();
     tex.refresh();
   }
+}
+
+// Короткое уведомление внизу экрана
+export function toast(scene, str) {
+  const c = scene.add.container(360, 1150).setDepth(300);
+  const t = body(scene, 0, 0, str, 22, HEX.white, { align: 'center', wordWrap: { width: 560 } }).setOrigin(0.5);
+  const g = scene.add.graphics();
+  drawCard(g, Math.min(640, t.width + 60), t.height + 34, COLORS.ink, { radius: 22, depth: 0, stroke: COLORS.pink });
+  c.add([g, t]).setAlpha(0);
+  scene.tweens.add({ targets: c, alpha: 1, y: 1120, duration: 200 });
+  scene.tweens.add({ targets: c, alpha: 0, delay: 2600, duration: 300, onComplete: () => c.destroy() });
+}
+
+// Показать рекламу за награду; true — награду можно выдавать
+export async function askReward(scene) {
+  const r = await sdk.showRewarded();
+  if (r === 'skipped') toast(scene, 'Досмотри рекламу до конца, чтобы получить награду');
+  else if (r === 'error') toast(scene, 'Реклама сейчас недоступна, попробуй чуть позже');
+  return r === 'ok';
 }

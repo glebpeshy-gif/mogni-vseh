@@ -2,8 +2,7 @@
 import * as Phaser from 'phaser';
 import { WHEEL } from '../data.js';
 import { wheelStatus, useSpin, rollWheel, applyPrize, msToMidnight, save } from '../state.js';
-import { COLORS, HEX, txt, body, button, modal, pop, emoji } from '../theme.js';
-import * as sdk from '../sdk.js';
+import { COLORS, HEX, txt, body, button, modal, pop, emoji, askReward } from '../theme.js';
 import * as sound from '../sound.js';
 
 const R = 235;
@@ -72,7 +71,7 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
 
   // ----- кнопка и статус -----
   const status = body(scene, 0, 262, '', 22, HEX.soft, { align: 'center' }).setOrigin(0.5);
-  const btn = button(scene, 0, 345, 470, 92, '', COLORS.lime, () => onButton(), { size: 28, textColor: HEX.ink });
+  const btn = button(scene, 0, 345, 520, 92, '', COLORS.lime, () => onButton(), { size: 28, textColor: HEX.ink });
   const hint = body(scene, 0, 420, 'Бесплатный спин — каждый день', 18, '#8f84c2').setOrigin(0.5);
   panel.add([status, btn, hint]);
 
@@ -84,7 +83,7 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
       btn.label.setColor(HEX.ink).setStroke('#ffffff', 0);
       hint.setText('Бесплатный спин — каждый день');
     } else if (s.adsLeft > 0) {
-      btn.setColor(COLORS.purple).setEnabled(true).setLabel(`📺 ЕЩЁ СПИН (${s.adsLeft})`);
+      btn.setColor(COLORS.purple).setEnabled(true).setLabel(`📺 СПИН ЗА РЕКЛАМУ (${s.adsLeft})`);
       btn.label.setColor(HEX.white).setStroke(HEX.ink, 6);
       hint.setText(`Новый бесплатный спин через ${hhmmss(msToMidnight())}`);
     } else {
@@ -100,10 +99,9 @@ export function openWheel(scene, { onPrize, onClose } = {}) {
     const byAd = !s.free;
     if (byAd) {
       if (s.adsLeft <= 0) return;
-      sdk.gameplayStop();
-      const ok = await sdk.showRewarded();
-      sdk.gameplayStart();
-      if (!ok) return;
+      btn.setEnabled(false);
+      const ok = await askReward(scene);
+      if (!ok) { updateStatus(); return; }
     }
     useSpin(byAd);
     save();

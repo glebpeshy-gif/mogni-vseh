@@ -2,8 +2,7 @@
 let ctx = null;
 let master = null;
 let userMuted = false;
-let adMuted = false;
-let hidden = false;
+let paused = false; // реклама / свёрнутая вкладка / пауза платформы
 
 function ensure() {
   if (!ctx) {
@@ -12,25 +11,27 @@ function ensure() {
     master.connect(ctx.destination);
     apply();
   }
-  if (ctx.state === 'suspended' && !adMuted && !hidden) ctx.resume();
+  if (ctx.state === 'suspended' && !paused) ctx.resume();
   return ctx;
 }
 
 function apply() {
   if (!master) return;
-  master.gain.value = userMuted || adMuted || hidden ? 0 : 0.35;
+  master.gain.value = userMuted || paused ? 0 : 0.35;
 }
 
 export function setMuted(v) { userMuted = v; apply(); }
-export function setAdMuted(v) { adMuted = v; apply(); }
 
-// Звук выключается, когда вкладка скрыта (требование Яндекс Игр)
-document.addEventListener('visibilitychange', () => {
-  hidden = document.hidden;
+// Вызывается из sdk.js: на паузе звук полностью останавливается
+export function setPaused(v) {
+  paused = v;
   apply();
-});
+  if (!ctx) return;
+  if (v) ctx.suspend(); else ctx.resume();
+}
 
 function tone(freq, dur, type = 'square', vol = 0.3, slideTo = null, delay = 0) {
+  if (paused) return;
   const c = ensure();
   const t = c.currentTime + delay;
   const o = c.createOscillator();

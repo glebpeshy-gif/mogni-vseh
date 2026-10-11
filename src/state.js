@@ -66,7 +66,7 @@ export const hasEffect = (id) => activeEffects().some((e) => e.id === id);
 
 // ---------- колесо ауры (раз в день бесплатно + за рекламу) ----------
 
-const today = () => new Date().toLocaleDateString('sv'); // 2026-10-11
+const today = () => new Date(sdk.now()).toLocaleDateString('sv'); // 2026-10-11
 
 export function wheelStatus() {
   if (state.wheel.day !== today()) state.wheel = { day: today(), freeUsed: false, ads: 0 };
@@ -80,9 +80,10 @@ export function useSpin(byAd) {
 }
 
 export function msToMidnight() {
-  const d = new Date();
+  const t = sdk.now();
+  const d = new Date(t);
   d.setHours(24, 0, 0, 0);
-  return d - Date.now();
+  return d - t;
 }
 
 export function rollWheel() {
@@ -184,12 +185,41 @@ function snapshot() {
   return { aura, totalAura, level, kills, upgrades, muted, firstPlay, effects, wheel, savedAt: Date.now() };
 }
 
+// Требование 1.9: прогресс сохраняется сразу после действия.
+// Локально — мгновенно, в облако — не чаще раза в 5 секунд (последнее состояние не теряется).
+const CLOUD_EVERY = 5000;
+let cloudTimer = null;
+let lastCloud = 0;
+let loaded = false; // пока сохранение не загружено — ничего не пишем, чтобы не затереть его
+
+function flushCloud() {
+  cloudTimer = null;
+  lastCloud = Date.now();
+  sdk.cloudSave(snapshot());
+}
+
 export function save() {
+  if (!loaded) return;
   const data = snapshot();
   state.savedAt = data.savedAt;
   try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
-  sdk.cloudSave(data);
+  if (cloudTimer) return;
+  const wait = Math.max(0, CLOUD_EVERY - (Date.now() - lastCloud));
+  cloudTimer = setTimeout(flushCloud, wait);
 }
+
+// При сворачивании/закрытии — сразу в облако
+export function saveNow() {
+  if (!loaded) return;
+  clearTimeout(cloudTimer);
+  const data = snapshot();
+  state.savedAt = data.savedAt;
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+  flushCloud();
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+window.addEventListener('pagehide', saveNow);
 
 // Возвращает ауру, накопленную офлайн (её ещё нужно начислить)
 export async function load() {
@@ -199,6 +229,7 @@ export async function load() {
   const data = [local, cloud]
     .filter((d) => d && d.savedAt)
     .sort((a, b) => b.savedAt - a.savedAt)[0];
+  loaded = true;
   if (!data) {
     state.firstPlay = Date.now();
     return 0;

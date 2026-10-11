@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
-import { ENEMIES, BOSSES, PLAYER_STAGES } from '../data.js';
 import * as sdk from '../sdk.js';
 import { load } from '../state.js';
+
+const ART = import.meta.glob('../art/**/*.png', { eager: true, query: '?url', import: 'default' });
 
 export default class Boot extends Phaser.Scene {
   constructor() { super('Boot'); }
@@ -9,11 +10,15 @@ export default class Boot extends Phaser.Scene {
   preload() {
     this.add.text(360, 640, 'Загрузка...', { fontFamily: 'Arial', fontSize: '40px', color: '#fff' }).setOrigin(0.5);
 
-    // Если картинки нет — не страшно, вместо неё будет эмодзи
-    this.load.on('loaderror', () => {});
-    for (const e of [...ENEMIES, ...BOSSES]) this.load.image(`enemy_${e.id}`, `assets/enemies/${e.id}.png`);
-    PLAYER_STAGES.forEach((_, i) => this.load.image(`player_${i + 1}`, `assets/player/stage${i + 1}.png`));
-    this.load.image('bg', 'assets/bg.png');
+    // Берём только картинки, которые реально лежат в src/art — недостающих персонажей заменит эмодзи
+    for (const [path, url] of Object.entries(ART)) {
+      const m = path.match(/art\/(?:(enemies|player)\/)?([\w-]+)\.png$/);
+      if (!m) continue;
+      const [, dir, name] = m;
+      if (dir === 'enemies') this.load.image(`enemy_${name}`, url);
+      else if (dir === 'player') this.load.image(`player_${name.replace('stage', '')}`, url);
+      else if (name === 'bg') this.load.image('bg', url);
+    }
   }
 
   async create() {

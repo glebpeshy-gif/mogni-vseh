@@ -4,7 +4,7 @@ import {
   state, stats, cost, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
   isBoss, playerStage, addAura, save, format, activeEffects, addEffect, hasEffect, wheelStatus,
 } from '../state.js';
-import { COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures } from '../theme.js';
+import { COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures, modal, askReward } from '../theme.js';
 import { openWheel } from '../features/wheel.js';
 import { openLeaderboard } from '../features/leaderboard.js';
 import * as sdk from '../sdk.js';
@@ -35,8 +35,15 @@ export default class Game extends Phaser.Scene {
     this.refresh();
 
     sound.setMuted(state.muted);
+
+    // Реклама / пауза платформы / свёрнутая вкладка — игра полностью замирает
+    const off = sdk.onPauseChange((paused) => {
+      if (paused) this.scene.pause(); else this.scene.resume();
+    });
+    this.events.once('shutdown', off);
+    if (sdk.isPaused()) this.scene.pause();
+
     sdk.ready();
-    sdk.gameplayStart();
     if (this.offline > 0) this.showOffline(this.offline);
   }
 
@@ -188,13 +195,13 @@ export default class Game extends Phaser.Scene {
 
   // ---------- игровой цикл ----------
 
-  spawnEnemy() {
+  spawnEnemy(bonusTime = 0) {
     const boss = isBoss(state.level);
     const e = enemyFor(state.level);
     this.maxHp = enemyHp(state.level);
     this.hp = this.maxHp;
     this.dying = false;
-    this.bossLeft = boss ? BALANCE.bossTime : 0;
+    this.bossLeft = boss ? BALANCE.bossTime + bonusTime : 0;
 
     this.enemyBob.removeAll(true);
     this.enemyHolder.setAlpha(1).setAngle(0).setScale(0);
@@ -214,7 +221,7 @@ export default class Game extends Phaser.Scene {
   }
 
   onTap(p, auto = false) {
-    if (this.dying) return;
+    if (this.dying || sdk.inMenu()) return;
     const s = stats();
     const crit = Math.random() < s.crit;
     const dmg = s.tap * (crit ? BALANCE.critMult : 1);
@@ -243,7 +250,7 @@ export default class Game extends Phaser.Scene {
   }
 
   tick(dt) {
-    if (this.dying) return;
+    if (this.dying || sdk.inMenu()) return;
     const s = stats();
     if (s.dps > 0) this.damage(s.dps * dt);
 
@@ -298,29 +305,67 @@ export default class Game extends Phaser.Scene {
     this.tweens.add({
       targets: this.enemyHolder, scaleX: 1.4, scaleY: 0.12, alpha: 0, angle: 15,
       duration: 380, ease: 'Back.easeIn',
-      onComplete: async () => {
-        if (wasBoss) {
-          save();
-          sdk.gameplayStop();
-          await sdk.showFullscreen();
-          sdk.gameplayStart();
-        }
-        this.spawnEnemy();
+      onComplete: () => {
+        if (wasBoss) this.showBossResult(true, reward);
+        else this.spawnEnemy();
       },
     });
+    save();
     this.refresh();
   }
 
   bossFailed() {
     this.dying = true;
     sound.fail();
-    pop(this, 360, 400, 'НЕ ХВАТИЛО АУРЫ!', 40, '#ff5a7a', 40);
-    pop(this, 360, 470, 'качайся и возвращайся', 24, HEX.soft, 30);
-    state.level = Math.max(0, state.level - 1);
     this.tweens.add({
-      targets: this.enemyHolder, alpha: 0, duration: 600, delay: 700,
-      onComplete: () => this.spawnEnemy(),
+      targets: this.enemyHolder, alpha: 0.25, duration: 400,
+      onComplete: () => this.showBossResult(false),
     });
+  }
+
+  // Итоги босса — логическая пауза. Полноэкранная реклама показывается
+  // только после нажатия кнопки, а не посреди тапов (требование 4.4).
+  showBossResult(win, reward = 0) {
+    let done = false;
+    const next = async (retryWithBonus = false) => {
+      if (done) return;
+      done = true;
+      if (!retryWithBonus) await sdk.showFullscreen();
+      close();
+      if (!win && !retryWithBonus) state.level = Math.max(0, state.level - 1);
+      save();
+      this.spawnEnemy(retryWithBonus ? BALANCE.bossRetryBonus : 0);
+    };
+
+    const { panel, close } = modal(this, 620, win ? 520 : 640,
+      win ? '🔥 БОСС ЗАМОГАН!' : '💀 НЕ ХВАТИЛО АУРЫ', { onX: () => next() });
+
+    if (win) {
+      panel.add(emoji(this, 0, -80, '🗿', 110));
+      panel.add(txt(this, 0, 40, `+${format(reward)} ✨`, 50, HEX.yellow).setOrigin(0.5));
+      this.confetti.explode(60, 360, 500);
+      sound.prize();
+    } else {
+      panel.add(emoji(this, 0, -150, '😵', 90));
+      panel.add(body(this, 0, -50, 'Босс оказался сильнее.\nПрокачай луксмаксинг и возвращайся!', 24, HEX.soft, { align: 'center' }).setOrigin(0.5));
+      // Награда за рекламу — бонус, а не обязательное условие (требование 4.5.2)
+      const retry = button(this, 0, 60, 520, 84, `📺 РЕКЛАМА: +${BALANCE.bossRetryBonus} СЕК\nИ ЕЩЁ ПОПЫТКА`, COLORS.purple, async () => {
+        if (done || !retry.enabled) return;
+        retry.setEnabled(false);
+        if (await askReward(this)) next(true);
+        else retry.setEnabled(true);
+      }, { size: 21 });
+      panel.add(retry);
+    }
+
+    // Кнопка активна через секунду, чтобы игрок не нажал её случайно, продолжая тапать
+    const go = button(this, 0, win ? 170 : 175, 360, 84, win ? 'ДАЛЕЕ ▶' : 'ПОНЯЛ ▶', COLORS.lime, () => {
+      if (go.enabled) next();
+    }, { size: 28, textColor: HEX.ink });
+    go.label.setStroke('#ffffff', 0);
+    go.setEnabled(false);
+    this.time.delayedCall(1000, () => go.setEnabled(true));
+    panel.add(go);
   }
 
   onBuy(u, btn) {
@@ -336,12 +381,10 @@ export default class Game extends Phaser.Scene {
   }
 
   async watchBoost() {
-    if (hasEffect('ad')) return;
-    sdk.gameplayStop();
-    const ok = await sdk.showRewarded();
-    sdk.gameplayStart();
-    if (ok) {
+    if (hasEffect('ad') || sdk.isAdBusy()) return;
+    if (await askReward(this)) {
       addEffect({ type: 'all', mult: 2, sec: BALANCE.adBoostSec }, '×2 мог', 'ad');
+      save();
       sound.buy();
       pop(this, 360, 500, 'МОГ ×2!', 56, HEX.purple, 120);
       this.refresh();
@@ -381,7 +424,7 @@ export default class Game extends Phaser.Scene {
     if (ad) {
       this.boostBtn.setLabel(`×2 МОГ\nещё ${Math.ceil((ad.until - now) / 1000)} сек`).setEnabled(false);
     } else {
-      this.boostBtn.setLabel('📺 ×2 МОГ\nна 60 сек').setEnabled(true);
+      this.boostBtn.setLabel('📺 РЕКЛАМА:\n×2 МОГ 60 СЕК').setEnabled(true);
     }
 
     const free = wheelStatus().free;
@@ -421,31 +464,30 @@ export default class Game extends Phaser.Scene {
   }
 
   showOffline(amount) {
-    const box = this.add.container(0, 0).setDepth(200);
-    const close = (mult) => {
+    let busy = false;
+    let taken = false;
+    const { panel, close } = modal(this, 620, 500, 'ПОКА ТЕБЯ НЕ БЫЛО', { onX: () => take(1) });
+    const take = (mult) => {
+      if (taken || (busy && mult === 1)) return;
+      taken = true;
       addAura(amount * mult);
       pop(this, 360, 500, `+${format(amount * mult)} ✨`, 48, HEX.yellow, 120);
-      box.destroy();
+      close();
       this.refresh();
       save();
     };
 
-    const shade = this.add.rectangle(360, 640, 720, 1280, 0x05010f, 0.82).setInteractive();
-    const panel = this.add.graphics({ x: 360, y: 620 });
-    drawCard(panel, 620, 440, COLORS.card, { radius: 28, depth: 10, stroke: COLORS.yellow });
-    const title = txt(this, 360, 490, 'ПОКА ТЕБЯ НЕ БЫЛО,\nТЫ НАМОГАЛ', 30).setOrigin(0.5);
-    const sum = txt(this, 360, 600, `✨ ${format(amount)}`, 62, HEX.yellow).setOrigin(0.5);
-    let busy = false;
-    const take = button(this, 220, 730, 230, 84, 'ЗАБРАТЬ', COLORS.lime, () => { if (!busy) close(1); }, { size: 24, textColor: HEX.ink });
-    take.label.setStroke('#ffffff', 0);
-    const double = button(this, 490, 730, 270, 84, '📺 ЗАБРАТЬ ×2', COLORS.purple, async () => {
+    panel.add(body(this, 0, -110, 'ты намогал', 26, HEX.soft).setOrigin(0.5));
+    panel.add(txt(this, 0, -30, `✨ ${format(amount)}`, 62, HEX.yellow).setOrigin(0.5));
+    const double = button(this, 0, 90, 520, 84, '📺 РЕКЛАМА: ЗАБРАТЬ ×2', COLORS.purple, async () => {
       if (busy) return;
       busy = true;
-      sdk.gameplayStop();
-      const ok = await sdk.showRewarded();
-      sdk.gameplayStart();
-      close(ok ? 2 : 1);
+      double.setEnabled(false);
+      if (await askReward(this)) take(2);
+      else { busy = false; double.setEnabled(true); }
     }, { size: 22 });
-    box.add([shade, panel, title, sum, take, double]);
+    const one = button(this, 0, 190, 360, 76, 'ЗАБРАТЬ', COLORS.lime, () => take(1), { size: 24, textColor: HEX.ink });
+    one.label.setStroke('#ffffff', 0);
+    panel.add([double, one]);
   }
 }

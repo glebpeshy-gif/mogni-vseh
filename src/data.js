@@ -1,5 +1,5 @@
 // Все игровые данные в одном месте — баланс правится здесь.
-// emoji — временная картинка, пока нет файла в public/assets/...
+// emoji — временная картинка, пока нет файла в src/art/
 
 export const ENEMIES = [
   { id: 'normis',    name: 'Нормис Петя',      emoji: '😐' },
@@ -54,6 +54,7 @@ export const BALANCE = {
   offlineMaxSec: 2 * 60 * 60,
   offlineRatio: 0.5,
   adBoostSec: 60,
+  bossRetryBonus: 15, // +секунд к таймеру босса за рекламу
   wheelAdSpins: 3,     // доп. прокрутов колеса за рекламу в день
 };
 
