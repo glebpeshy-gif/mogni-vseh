@@ -203,6 +203,182 @@ function gorillaHead() {
     + line('M200,300 Q256,320 312,300', 5, '#4e4858') + ellipse(240, 248, 9, 6, INK, { 'stroke-width': 0 }) + ellipse(272, 248, 9, 6, INK, { 'stroke-width': 0 });
 }
 
+
+// ---------- персонажи по мемам (узнаются по деталям, лица — свои) ----------
+
+// Сигма в костюме: зализанные волосы, наушники, красный галстук, ледяной взгляд
+function sigmaSuit() {
+  const S0 = SKIN.light;
+  return [
+    torso({ color: '#16161f', wide: true, shade: '#0a0a10' }),
+    path('M206,336 L256,424 L306,336 Z', '#f4f4f8'),
+    path('M244,350 L268,350 L278,376 L264,470 L248,470 L234,376 Z', '#c8102e'),
+    ...[[252, 384], [262, 404], [250, 424], [260, 444]].map(([x, y]) => circle(x, y, 3.5, '#7a0a1c', { stroke: 'none' })),
+    path('M206,336 L252,440 L226,500 L150,500 C150,420 170,360 206,336 Z', '#22222e'),
+    path('M306,336 L260,440 L286,500 L362,500 C362,420 342,360 306,336 Z', '#22222e'),
+    line('M128,246 Q140,330 236,392', 4, '#111'),
+    neck(S0), head('square', S0),
+    line('M206,272 Q214,286 226,290 M306,272 Q298,286 286,290', 4, S0[1]),
+    // взгляд «в пустоту»: узкие веки, маленькие зрачки
+    ...[208, 304].map((x) => ellipse(x, 208, 24, 16, '#fff') + circle(x, 208, 7, '#3b2a1a', { 'stroke-width': 0 }) + line(`M${x - 26},200 L${x + 26},200`, 7)),
+    line('M180,176 L234,182 M278,182 L332,176', 11, '#2a1a10'),
+    line('M236,270 L278,270', 6),
+    path('M134,198 C120,118 168,60 252,56 C334,52 390,96 386,176 C386,190 382,200 378,206 C366,150 336,122 296,114 C270,132 236,124 226,108 C190,122 156,152 134,198 Z', '#3a2414'),
+    line('M226,108 C236,90 260,78 296,78', 4, '#5a3a24'),
+    line('M138,212 C126,70 386,70 374,212', 9, '#111'),
+    ellipse(132, 216, 22, 34, '#1a1a1a'), ellipse(380, 216, 22, 34, '#1a1a1a'),
+    ellipse(128, 206, 6, 12, '#555', { stroke: 'none' }),
+  ];
+}
+
+// Гигачад: борода, огромная улыбка, зачёс назад, плечи как шкаф
+function gigachadHuman() {
+  const sk = SKIN.tan;
+  return [
+    path('M70,500 C70,392 150,326 256,326 C362,326 442,392 442,500 Z', sk[0]),
+    el('path', { d: 'M330,336 C400,356 440,420 442,500 L380,500 C376,430 356,380 310,350 Z', fill: sk[1], opacity: 0.6 }),
+    line('M140,410 Q170,380 200,392 M372,410 Q342,380 312,392', 5, sk[1]),
+    path('M168,500 L176,404 C180,380 196,360 214,352 L232,352 C240,386 272,386 280,352 L298,352 C316,360 332,380 336,404 L344,500 Z', '#14121c'),
+    path('M222,300 L222,352 Q256,372 290,352 L290,300 Z', sk[1]),
+    g({ transform: 'rotate(-5 256 210)' },
+      head('giga', sk),
+      path('M126,236 C126,306 172,356 256,360 C340,356 386,306 386,236 C372,262 352,272 330,268 C310,288 282,294 256,294 C230,294 202,288 182,268 C160,272 140,262 126,236 Z', '#3a2416'),
+      line('M150,270 L158,300 M362,270 L354,300 M200,320 L206,340 M312,320 L306,340', 4, '#24160c'),
+      path('M196,266 Q256,334 316,266 Q256,282 196,266 Z', '#ffffff'),
+      line('M220,276 L222,296 M238,280 L239,306 M256,282 L256,310 M274,280 L273,306 M292,276 L290,296', 3, '#c9c9d4'),
+      path('M210,252 Q256,234 302,252 Q280,264 256,258 Q232,264 210,252 Z', '#3a2416'),
+      ...[206, 306].map((x) => path(`M${x - 26},210 Q${x},192 ${x + 26},206 Q${x},222 ${x - 26},210 Z`, '#fff') + circle(x + 2, 207, 8, '#3a2a1a', { 'stroke-width': 0 })),
+      line('M178,178 Q206,166 234,182 M278,182 Q306,166 334,178', 12, '#2a1a10'),
+      line('M196,232 Q206,240 220,236', 4, sk[1]),
+      path('M130,190 C118,108 172,62 256,60 C340,58 396,106 384,190 C368,140 330,110 288,108 C262,106 220,108 190,124 C164,140 144,162 130,190 Z', '#241610'),
+      line('M190,124 C220,96 266,88 300,92 M214,118 C244,98 290,96 330,108', 4, '#3e2a1c')),
+    sparkle(84, 120, 1.2), sparkle(436, 150, 1), sparkle(420, 330, 0.8),
+  ];
+}
+
+// Чад-викинг («Yes»-чад): профиль, светлый андеркат, огромная борода
+function vikingChad() {
+  const sk = ['#f3cfb2', '#e0ad8a'];
+  const hair = '#e2b45a', beard = '#d19a3e', shaved = '#ecd39a';
+  return [
+    path('M110,500 C120,420 176,362 262,352 C352,348 412,410 422,500 Z', '#1b1a22'),
+    path('M236,300 L232,362 Q280,382 330,356 L330,300 Z', sk[1]),
+    path('M318,94 C248,78 190,104 178,160 L172,198 L146,230 Q142,240 156,244 L172,248 L174,264 L190,300 L338,334 C388,302 396,240 386,180 C378,128 360,102 318,94 Z', sk[0]),
+    path('M300,150 C344,146 376,162 384,196 L380,256 C350,250 322,232 310,206 Z', shaved, { 'stroke-width': 0 }),
+    ellipse(326, 214, 18, 26, sk[0]), line('M322,204 Q332,214 322,226', 4, sk[1]),
+    path('M178,262 C172,306 190,356 242,374 C296,390 350,364 364,322 C372,292 366,262 354,238 C334,262 304,266 282,254 C262,268 230,272 212,262 C198,268 188,266 178,262 Z', beard),
+    line('M200,300 Q206,330 226,350 M240,300 Q244,336 262,360 M282,296 Q288,330 304,352 M320,286 Q330,312 338,336', 4, '#a8742a'),
+    path('M164,258 C178,246 214,248 228,260 C210,272 184,272 164,258 Z', beard),
+    path('M180,268 Q196,280 212,272', '#ff8fa3', { 'stroke-width': 4 }),
+    path('M176,154 C178,100 232,70 302,74 C354,78 386,110 388,164 C362,142 322,132 282,134 C240,136 200,142 176,154 Z', hair),
+    line('M196,138 C230,110 280,100 330,108 M212,148 C246,124 292,118 344,126 M240,96 C270,86 312,88 350,104', 4, '#b9893a'),
+    path('M186,188 Q204,178 222,188 Q204,198 186,188 Z', '#fff', { 'stroke-width': 5 }), circle(198, 188, 6, '#3d7bff', { 'stroke-width': 0 }),
+    line('M180,170 L230,172', 9, '#b9893a'),
+    line('M176,204 Q160,226 150,232', 5, sk[1]),
+    sparkle(90, 120, 1), sparkle(440, 120, 0.9),
+  ];
+}
+
+// Очкарик: огромные квадратные очки, чёлка набок, румянец, свитер с воротничком
+function fourEyes() {
+  const sk = ['#ffd9c4', '#f0b49a'];
+  return [
+    torso({ color: '#16141e', shade: '#0a0910' }),
+    path('M204,338 Q232,352 254,350 L240,388 Q212,378 204,338 Z', '#ffffff'),
+    path('M308,338 Q280,352 258,350 L272,388 Q300,378 308,338 Z', '#ffffff'),
+    neck(sk), circle(140, 220, 24, sk[0]), circle(372, 220, 24, sk[0]),
+    path('M132,206 C132,124 186,92 256,92 C326,92 380,124 380,206 C380,284 326,322 256,322 C186,322 132,284 132,206 Z', sk[0]),
+    ellipse(184, 262, 34, 22, '#ff6f8a', { stroke: 'none', opacity: 0.55 }), ellipse(328, 262, 34, 22, '#ff6f8a', { stroke: 'none', opacity: 0.55 }),
+    ...[206, 306].map((x) => path(`M${x - 18},214 Q${x},202 ${x + 18},214`, 'none') + circle(x, 214, 7, '#3b6bd1', { 'stroke-width': 0 }) + line(`M${x - 20},206 Q${x},196 ${x + 20},206`, 6)),
+    el('rect', ink({ x: 156, y: 172, width: 100, height: 82, rx: 18, fill: '#e8f4ff', 'fill-opacity': 0.35, stroke: '#7a4a22', 'stroke-width': 11 })),
+    el('rect', ink({ x: 262, y: 172, width: 100, height: 82, rx: 18, fill: '#e8f4ff', 'fill-opacity': 0.35, stroke: '#7a4a22', 'stroke-width': 11 })),
+    line('M176,186 L196,180 M282,186 L302,180', 5, '#fff'),
+    line('M256,206 L262,206', 9, '#7a4a22'), line('M156,196 L132,188 M362,196 L384,188', 9, '#7a4a22'),
+    line('M228,282 Q258,300 290,276', 7),
+    path('M130,214 C116,124 176,70 260,70 C344,70 396,120 382,206 C368,168 346,150 316,148 C282,170 230,178 184,168 C160,176 142,192 130,214 Z', '#a87b4f'),
+    line('M184,168 C220,140 270,124 316,148', 4, '#8a6038'),
+  ];
+}
+
+// Пацан с района: шапка-бини, пуховик, щёки, чупа-чупс
+function blockKid() {
+  const sk = ['#ffd0b5', '#efab8e'];
+  return [
+    path('M120,500 C120,388 170,332 256,332 C342,332 392,388 392,500 Z', '#1f2a44'),
+    line('M132,420 L380,420 M124,460 L388,460 M150,384 L362,384', 5, '#2f3d60'),
+    path('M180,330 L332,330 L340,376 Q256,392 172,376 Z', '#26334f'), line('M256,334 L256,500', 5, '#151d30'),
+    circle(136, 222, 24, sk[0]), circle(376, 222, 24, sk[0]),
+    path('M128,214 C128,138 184,104 256,104 C328,104 384,138 384,214 C384,290 330,334 256,334 C182,334 128,290 128,214 Z', sk[0]),
+    ellipse(182, 266, 34, 24, '#ff6f8a', { stroke: 'none', opacity: 0.5 }), ellipse(330, 266, 34, 24, '#ff6f8a', { stroke: 'none', opacity: 0.5 }),
+    ...[210, 302].map((x) => ellipse(x, 220, 20, 16, '#fff') + circle(x, 222, 9, '#4a3a2a', { 'stroke-width': 0 })
+      + path(`M${x - 22},218 L${x + 22},218 L${x + 22},200 L${x - 22},200 Z`, sk[0], { stroke: 'none' }) + line(`M${x - 21},218 L${x + 21},218`, 6)),
+    line('M188,194 L230,198 M282,198 L324,194', 8, '#8a6a4a'),
+    ellipse(252, 284, 12, 10, '#a83a52'),
+    line('M262,286 L330,312', 7, '#ffffff'), line('M262,286 L330,312', 2, '#c9c9d4'),
+    circle(340, 316, 22, '#ff5ca8'), line('M328,308 Q340,300 352,312 Q344,326 332,320', 4, '#fff'),
+    path('M134,196 C130,104 192,62 256,62 C320,62 382,104 378,196 Z', '#1d2233'),
+    ...[160, 184, 208, 232, 256, 280, 304, 328, 352].map((x) => line(`M${x},${x < 256 ? 120 - (x - 160) / 3 : 88 + (x - 256) / 3} L${x},176`, 4, '#2c3350')),
+    path('M126,168 L386,168 L388,206 Q256,196 124,206 Z', '#2c3350'),
+    line('M136,186 L376,186', 4, '#1d2233'),
+  ];
+}
+
+// Альтушка: тёмные корни и синие пряди, подводка, колечко в носу, чёрная футболка
+function altGirl() {
+  const sk = ['#ffe0cf', '#f2bfa6'];
+  const blue = '#2f5fd1', roots = '#4a3326';
+  return [
+    acc.ringLight(),
+    path('M118,176 C96,300 104,420 132,488 L380,488 C408,420 416,300 394,176 Z', blue),
+    path('M140,500 C140,392 180,338 256,338 C332,338 372,392 372,500 Z', '#141218'),
+    line('M214,342 Q234,356 256,356 Q278,356 298,342', 4, '#4a4458'),
+    ...[220, 236, 256, 276, 292].map((x) => circle(x, 350 + (x === 256 ? 6 : 2), 3, '#4a4458', { stroke: 'none' })),
+    neck(sk), head('round', sk, { ears: false }),
+    ...[208, 304].map((x, i) => {
+      const s = i ? 1 : -1;
+      return ellipse(x, 210, 22, 20, '#fff') + circle(x, 212, 11, '#3a2418', { 'stroke-width': 0 }) + circle(x + 4, 206, 4, '#fff', { stroke: 'none' })
+        + path(`M${x - 24},208 Q${x},186 ${x + 24},${208 - 2 * s} L${x + 24},186 L${x - 24},186 Z`, sk[0], { stroke: 'none' })
+        + line(`M${x - 24},206 Q${x},190 ${x + 24},${204}`, 8) + line(`M${x + 24 * s},${205} L${x + 38 * s},${196}`, 6);
+    }),
+    ellipse(256, 270, 14, 7, '#c8102e', { 'stroke-width': 4 }),
+    circle(270, 248, 7, 'none', { stroke: '#c9d1e0', 'stroke-width': 4 }),
+    blush('#ff8fb1'),
+    path('M150,168 C128,240 138,306 162,344 L180,304 C172,254 174,212 190,170 Z', blue),
+    path('M362,168 C384,240 374,306 350,344 L332,304 C340,254 338,212 322,170 Z', blue),
+    path('M132,204 C118,112 182,64 256,64 C330,64 394,112 380,204 C364,150 332,128 298,130 Q266,134 256,116 Q246,134 214,130 C180,128 148,150 132,204 Z', roots),
+    line('M256,70 L256,116', 4, '#2f2018'),
+    acc.phone(),
+  ];
+}
+
+// Кот-красавчик: точёные скулы, прищур, губки
+function handsomeCat() {
+  const fur = '#f2a038', dark = '#c46d16', light = '#ffdcae';
+  return [
+    torso({ color: fur, shade: dark }),
+    line('M190,400 Q256,430 322,400 M200,440 Q256,470 312,440', 6, dark),
+    path('M146,154 L140,52 L226,108 Z', fur), path('M366,154 L372,52 L286,108 Z', fur),
+    path('M158,130 L156,82 L198,110 Z', '#ffb3c7', { 'stroke-width': 4 }), path('M354,130 L356,82 L314,110 Z', '#ffb3c7', { 'stroke-width': 4 }),
+    path('M114,222 C114,132 182,96 256,96 C330,96 398,132 398,222 C398,306 334,346 256,346 C178,346 114,306 114,222 Z', fur),
+    line('M226,102 L232,140 M256,98 L256,140 M286,102 L280,140', 9, dark),
+    ellipse(256, 286, 76, 50, light, { 'stroke-width': 0 }),
+    line('M164,196 Q170,262 222,306 M348,196 Q342,262 290,306', 5, dark),
+    line('M150,236 Q164,282 196,300 M362,236 Q348,282 316,300', 4, dark),
+    line('M222,330 Q256,342 290,330', 5, dark),
+    ...[208, 304].map((x, i) => {
+      const s = i ? 1 : -1;
+      return ellipse(x, 206, 26, 20, '#c8e26a') + ellipse(x + 2 * s, 208, 5, 14, INK, { 'stroke-width': 0 })
+        + path(`M${x - 28},206 Q${x},188 ${x + 28},${200} L${x + 28},180 L${x - 28},180 Z`, fur, { stroke: 'none' })
+        + line(`M${x - 27},206 Q${x},190 ${x + 27},200`, 7) + line(`M${x - 22},226 Q${x},234 ${x + 22},226`, 4, dark);
+    }),
+    path('M244,250 L268,250 L256,264 Z', '#ff8f9e', { 'stroke-width': 4 }),
+    path('M228,290 Q242,278 256,286 Q270,278 284,290 Q270,304 256,302 Q242,304 228,290 Z', '#ff8fa3', { 'stroke-width': 5 }),
+    line('M234,292 Q256,296 278,292', 3),
+    line('M186,280 L120,268 M186,292 L118,298 M326,280 L392,268 M326,292 L394,298', 4),
+    sparkle(90, 110, 1), sparkle(430, 300, 0.9),
+  ];
+}
+
 // ---------- сборка ----------
 function sticker(parts, { skin = SKIN.light } = {}) {
   const body = parts.join('').replace(/var\(--skin\)/g, skin[0]);
@@ -233,49 +409,30 @@ const CHARACTERS = {
     torso({ color: '#9aa0b4', shade: '#6f7590' }), acc.lanyard(), neck(S), head('round', S), eyes('dot'), brows('flat'), mouth('flat'),
     hair('slick', '#7a6a5a'), acc.qBubble(),
   ],
-  'enemies/tiktoker': [ // кольцевая лампа, губы уточкой, телефон в руке
-    acc.ringLight(), torso({ color: '#b6ff3b', shade: '#7fc41a' }), neck(S), head('round', S), blush(), eyes('anime', { iris: '#ff4fa3' }),
-    mouth('duck'), hair('fringe', '#ff5ca8'), acc.phone(), acc.hearts(),
-  ],
+  'enemies/tiktoker': altGirl(), // «альтушка»
   'enemies/streamer': [ // ночной стример: синяки под глазами, гарнитура, RGB-худи
     torso({ color: '#6b3fd1', shade: '#4a2a9c' }), acc.rgb(), neck(S), head('round', S), eyes('tired', { iris: '#29b8ff' }), brows('raised'),
     mouth('grin'), hair('messy', '#2b2238'), acc.headset('#29f0ff'),
   ],
-  'enemies/otlichnik': [ // круглые очки, брекеты, жилетка, карандаш за ухом
-    torso({ color: '#f2f2f2', shade: '#cfcfdc' }), acc.vest('#3f9e5a'), acc.tie('#ff3355'), acc.backpack(), neck(S), head('round', S), blush(),
-    eyes('glasses', { iris: '#3b6bd1' }), brows('raised'), mouth('braces'), hair('bowl', '#5a3a1e'), acc.pencil(),
-  ],
+  'enemies/otlichnik': fourEyes(), // очкарик
   'enemies/kachok': [ // качок: майка, повязка, шейкер с протеином
     torso({ color: '#ff4f4f', wide: true, shade: '#c22f3a' }), neck(T), head('square', T), eyes('normal', { iris: '#3b2a1a' }), brows('angry'),
     mouth('grin'), hair('buzz', '#2b1a10'), acc.headband('#ffffff'), acc.shaker(),
   ],
-  'enemies/fizruk': [ // физрук: кепка, усы, свисток, «спортивка» с полосками
-    torso({ color: '#2f5fd1', wide: true, shade: '#1f3f9c' }), acc.stripes(), acc.whistle(), neck(W), head('round', W), eyes('normal'), brows('angry'),
-    mouth('shout'), acc.mustache(), acc.cap('#ff3355'),
-  ],
+  'enemies/patsan': blockKid(), // пацан с района
   'enemies/animetyan': [ // большие глаза, хвостики, бантики, матроска
     acc.twinTails('#5ab8ff'), torso({ color: '#ffffff', shade: '#d8dcf0' }), acc.sailor(), neck(S), head('round', S), blush('#ff6fa8'),
     eyes('anime', { iris: '#3d7bff' }), mouth('smile'), hair('twinBangs', '#5ab8ff'), acc.bows('#ff4fa3'), acc.sparkles(2),
   ],
-  'enemies/cat': [ // кот-модель: самодовольный прищур, бабочка
-    torso({ color: '#f6a33c', shade: '#d97a1e' }), acc.bowtie(), catHead(), eyes('cat'), mouth('catw'), acc.sparkles(2),
-  ],
+  'enemies/cat': handsomeCat(), // кот-красавчик
   'enemies/bloger': [ // блогер-миллионер: тёмные очки, золотой зуб, цепь, веер купюр
     torso({ color: '#ff8fd1', shade: '#d95fa8' }), acc.jacketCollar('#ffb3e2'), acc.chain(), neck(T), head('square', T), eyes('shades'),
     mouth('gold'), hair('slick', '#ffe066'), acc.money(),
   ],
   // ---- боссы ----
-  'enemies/boss_sigma': [ // «каменное лицо» в деловом костюме и тёмных очках
-    torso({ color: '#1f1d2b', wide: true, shade: '#0f0e18' }), path('M226,340 L256,380 L286,340 Z', '#ffffff'), acc.tie('#d9263f'),
-    moaiHead(), eyes('shades'), mouth('stone'), acc.sparkles(1),
-  ],
-  'enemies/boss_gigachad': [ // горилла-гигачад: квадратная челюсть, бицепс, майка
-    torso({ color: '#3b3746', wide: true }),
-    path('M176,500 L176,410 C176,380 196,362 210,352 L230,352 C236,380 276,380 282,352 L302,352 C316,362 336,380 336,410 L336,500 Z', '#1b1530'),
-    line('M206,420 Q232,436 254,420 M258,420 Q280,436 306,420', 5, '#3a3354'),
-    path('M96,500 C92,440 110,392 150,380 C176,400 178,450 170,500 Z', '#4a4558'), path('M416,500 C420,440 402,392 362,380 C336,400 334,450 342,500 Z', '#4a4558'),
-    gorillaHead(), eyes('hunter', { iris: '#3a2410' }), brows('heavy', '#26232f'), mouth('smirk'), acc.sparkles(3),
-  ],
+  'enemies/chad': vikingChad(), // «Yes»-чад
+  'enemies/boss_sigma': sigmaSuit(), // сигма в костюме
+  'enemies/boss_gigachad': gigachadHuman(),
   'enemies/boss_king': [ // король ауры: корона, мантия, светящиеся глаза, пламя ауры
     acc.aura('#8b5cff', '#ff2e97'), acc.cape('#7a1fb8'), torso({ color: '#2b1a4a', wide: true }), acc.chain(), neck(T), head('giga', T),
     eyes('glow'), brows('cocky'), mouth('smirk'), acc.crown(),
@@ -303,7 +460,7 @@ const CHARACTERS = {
   ],
 };
 
-const SKINS = { 'enemies/kachok': T, 'enemies/bloger': T, 'enemies/boss_king': T, 'enemies/fizruk': W, 'enemies/cat': ['#f6a33c', '#d97a1e'] };
+const SKINS = { 'enemies/kachok': T, 'enemies/bloger': T, 'enemies/boss_king': T };
 
 for (const [name, parts] of Object.entries(CHARACTERS)) {
   const file = join(ROOT, 'src/art', `${name}.svg`);

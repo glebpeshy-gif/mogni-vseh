@@ -17,14 +17,15 @@ npm run art
 
 ## Соперники — папка enemies/
 normis.png      — Нормис Петя
-tiktoker.png    — Тиктокер
+tiktoker.png    — Альтушка
 streamer.png    — Стример
-otlichnik.png   — Отличник
+otlichnik.png   — Очкарик
 kachok.png      — Качок из зала
-fizruk.png      — Физрук
+patsan.png      — Пацан с района
 animetyan.png   — Аниме-тян
-cat.png         — Кот-модель
+cat.png         — Кот-красавчик
 bloger.png      — Блогер-миллионер
+chad.png        — Чад-викинг
 boss_sigma.png  — Сигма-босс
 boss_gigachad.png — Гигачад
 boss_king.png   — Король ауры

@@ -6,19 +6,20 @@
 
 export const ENEMIES = [
   { id: 'normis',    emoji: '😐', bg: { top: '#3b4266', bottom: '#151827', glow: '#8fa3ff', pattern: 'grid',    stickers: ['😐', '📄', '☕', '🥱', '💤'] } },
-  { id: 'tiktoker',  emoji: '🤳', bg: { top: '#4a0a3a', bottom: '#03343a', glow: '#ff2e7a', pattern: 'stripes', stickers: ['🤳', '🎵', '💃', '📱', '❤️'] } },
+  { id: 'tiktoker',  emoji: '🤳', bg: { top: '#1e2a5c', bottom: '#0a0a1a', glow: '#4f7bff', pattern: 'stripes', stickers: ['🖤', '⛓️', '🎧', '🦇', '💙'] } },
   { id: 'streamer',  emoji: '🎧', bg: { top: '#3b1f7a', bottom: '#0d0a22', glow: '#9146ff', pattern: 'grid',    stickers: ['🎮', '🎧', '💬', '🕹️', '🔴'] } },
   { id: 'otlichnik', emoji: '🤓', bg: { top: '#1f5a40', bottom: '#0a1f17', glow: '#b6ff3b', pattern: 'grid',    stickers: ['📚', '✏️', '📐', '🧮', '💯'] } },
   { id: 'kachok',    emoji: '💪', bg: { top: '#6a1d0b', bottom: '#1a0804', glow: '#ff8a3d', pattern: 'stripes', stickers: ['🏋️', '💪', '🥩', '🔥', '🥤'] } },
-  { id: 'fizruk',    emoji: '📣', bg: { top: '#155a35', bottom: '#06200f', glow: '#ffe14d', pattern: 'stripes', stickers: ['📣', '⚽', '🏀', '⏱️', '🥇'] } },
+  { id: 'patsan',    emoji: '🧢', bg: { top: '#3a3f4a', bottom: '#121419', glow: '#ff8a3d', pattern: 'grid',    stickers: ['🍭', '🧢', '🛹', '👟', '🏚️'] } },
   { id: 'animetyan', emoji: '🌸', bg: { top: '#6b1f58', bottom: '#1e0b2e', glow: '#ffb7e0', pattern: 'dots',    stickers: ['🌸', '✨', '🎀', '💖', '🍡'] } },
   { id: 'cat',       emoji: '😼', bg: { top: '#5a3f15', bottom: '#160e04', glow: '#ffd27a', pattern: 'dots',    stickers: ['🐟', '🧶', '🐾', '😼', '🥛'] } },
   { id: 'bloger',    emoji: '💸', bg: { top: '#0f4a39', bottom: '#03140f', glow: '#3dff9a', pattern: 'dots',    stickers: ['💸', '💰', '🤑', '💎', '📈'] } },
+  { id: 'chad',      emoji: '🧔', bg: { top: '#1f3a5a', bottom: '#0a1626', glow: '#7fd8ff', pattern: 'stripes', stickers: ['👍', '🛡️', '❄️', '🏔️', '🗿'] } },
 ];
 
 export const BOSSES = [
-  { id: 'boss_sigma',    emoji: '🗿', bg: { top: '#2a0a0a', bottom: '#000000', glow: '#ff2e2e', pattern: 'stripes', stickers: ['🗿', '🕶️', '⚡', '💼', '💀'] } },
-  { id: 'boss_gigachad', emoji: '🦍', bg: { top: '#3a3a3a', bottom: '#050505', glow: '#ffffff', pattern: 'stripes', stickers: ['🦍', '💪', '🗿', '🔥', '🏆'] } },
+  { id: 'boss_sigma',    emoji: '🕴️', bg: { top: '#2a2f3a', bottom: '#05070c', glow: '#ff2e2e', pattern: 'stripes', stickers: ['💼', '🕶️', '🎧', '📈', '💀'] } },
+  { id: 'boss_gigachad', emoji: '🧔', bg: { top: '#3a3a3a', bottom: '#050505', glow: '#ffffff', pattern: 'stripes', stickers: ['🦍', '💪', '🗿', '🔥', '🏆'] } },
   { id: 'boss_king',     emoji: '👑', bg: { top: '#4a3300', bottom: '#120b00', glow: '#ffd700', pattern: 'dots',    stickers: ['👑', '💎', '✨', '🏆', '💰'] } },
 ];
 

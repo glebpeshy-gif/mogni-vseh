@@ -145,7 +145,8 @@ export const isBoss = (level) => level % BALANCE.bossEvery === BALANCE.bossEvery
 
 export function enemyFor(level) {
   if (isBoss(level)) return BOSSES[Math.floor(level / BALANCE.bossEvery) % BOSSES.length];
-  return ENEMIES[level % ENEMIES.length];
+  const normalBefore = level - Math.floor(level / BALANCE.bossEvery); // сколько обычных было до этого
+  return ENEMIES[normalBefore % ENEMIES.length];
 }
 
 function baseHp(level) {
