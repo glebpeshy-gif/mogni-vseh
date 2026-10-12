@@ -33,8 +33,8 @@ export const UPGRADES = [
   { id: 'eyes',   emoji: '👁️', type: 'crit', value: 0.02, baseCost: 300,   growth: 1.6, max: 25 },
   { id: 'subs',   emoji: '📱', type: 'dps',  value: 10,   baseCost: 900,   growth: 1.17 },
   { id: 'hair',   emoji: '💇', type: 'tap',  value: 45,   baseCost: 3000,  growth: 1.19 },
-  { id: 'photo',  emoji: '📸', type: 'dps',  value: 80,   baseCost: 15000, growth: 1.19 },
   { id: 'outfit', emoji: '🧥', type: 'mult', value: 1.3,  baseCost: 5000,  growth: 2.2 },
+  { id: 'photo',  emoji: '📸', type: 'dps',  value: 80,   baseCost: 15000, growth: 1.19 },
 ];
 
 // Внешность игрока меняется от суммы уровней прокачки

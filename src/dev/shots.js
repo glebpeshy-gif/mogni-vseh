@@ -15,6 +15,12 @@ export async function run(game, shot) {
   await wait(300);
   if (shot === 'login') return;
   if (shot === 'fresh') { closeTopModal(); await wait(400); state.aura = 6; g.refresh(); return; }
+  if (shot === 'mid') {
+    closeTopModal(); await wait(400);
+    Object.assign(state, { level: 14, aura: 2600, buyMode: 1 });
+    state.upgrades = { mewing: 6, gym: 2, jaw: 2, eyes: 1 };
+    g.spawnEnemy(); g.refresh(); return;
+  }
   closeTopModal();
   await wait(300);
   Object.assign(state, { level: 35, aura: 5e7, sigma: 4, buyMode: 10 });

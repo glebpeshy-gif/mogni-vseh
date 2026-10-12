@@ -3,7 +3,7 @@ import { UPGRADES, BALANCE, EFFECT_ICONS } from '../data.js';
 import {
   state, stats, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
   isBoss, playerStage, addAura, save, format, activeEffects, addEffect, hasEffect, wheelStatus,
-  buyPlan, cycleBuyMode, prestigeGain, catchGolden, track, trackMax, tasksClaimable, loginStatus,
+  buyPlan, prestigeGain, catchGolden, track, trackMax, tasksClaimable, loginStatus,
   sigmaMult, nextMilestone, isRevealed, revealUpgrades,
 } from '../state.js';
 import {
@@ -20,6 +20,8 @@ import * as sdk from '../sdk.js';
 import * as sound from '../sound.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// цвет улучшения по типу: тап / авто / крит / множитель
+const TYPE_COLORS = { tap: COLORS.pink, dps: COLORS.cyan, crit: COLORS.yellow, mult: COLORS.purple };
 const CONFETTI = [COLORS.pink, COLORS.lime, COLORS.cyan, COLORS.yellow, COLORS.purple];
 const ENEMY_Y = 505;
 
@@ -230,30 +232,51 @@ export default class Game extends Phaser.Scene {
   createUpgrades() {
     const g = this.add.graphics({ x: 360, y: 1012 });
     g.fillStyle(COLORS.pink, 1).fillRoundedRect(-360, -280, 720, 600, 36);
-    g.fillStyle(COLORS.card, 1).fillRoundedRect(-360, -274, 720, 600, 36);
-    txt(this, 300, 772, t('looksmax'), 26, HEX.pink).setOrigin(0.5);
-    this.modeBtn = button(this, 636, 770, 100, 42, '', COLORS.yellow, () => {
-      cycleBuyMode();
-      sound.click();
-      this.refresh();
-      save();
-    }, { size: 17, textColor: HEX.ink });
-    this.modeBtn.label.setStroke('#ffffff', 0);
+    g.fillStyle(0x170c38, 1).fillRoundedRect(-360, -275, 720, 600, 36);
+    txt(this, 30, 772, t('looksmax'), 24, HEX.pink).setOrigin(0, 0.5);
+
+    // переключатель режима покупки: ×1 · ×10 · MAX
+    const seg = this.add.graphics({ x: 590, y: 772 });
+    seg.fillStyle(COLORS.ink, 1).fillRoundedRect(-108, -22, 216, 44, 22);
+    this.modeOpts = [1, 10, 'max'].map((mode, i) => {
+      const x = 590 - 70 + i * 70;
+      const pill = this.add.graphics({ x, y: 772 });
+      const label = txt(this, x, 772, mode === 'max' ? 'MAX' : `×${mode}`, 15, HEX.white, { strokeThickness: 0 }).setOrigin(0.5);
+      const hit = this.add.zone(x, 772, 70, 44).setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => {
+        if (state.buyMode === mode) return;
+        state.buyMode = mode;
+        sound.click();
+        this.refresh();
+        save();
+      });
+      return { mode, pill, label };
+    });
 
     this.desktop = sdk.isDesktop();
     this.rows = UPGRADES.map((u) => {
+      const tint = TYPE_COLORS[u.type];
       const row = this.add.container(0, 0).setVisible(false);
-      const card = this.add.graphics({ x: 360, y: 0 });
-      drawCard(card, 690, 52, 0x2a185e, { radius: 16, depth: 3 });
-      const circle = this.add.circle(42, 0, 22, COLORS.ink);
-      const icon = emoji(this, 42, 0, u.emoji, 26);
-      const key = txt(this, 22, -18, '', 12, HEX.yellow).setOrigin(0.5);
-      const name = txt(this, 76, -11, upgradeName(u.id), 18).setOrigin(0, 0.5);
-      const info = body(this, 76, 13, '', 15, '#b4a8e8').setOrigin(0, 0.5);
-      const btn = button(this, 616, -2, 150, 42, '', COLORS.lime, () => this.onBuy(u, btn), { size: 17, textColor: HEX.ink });
-      btn.label.setStroke('#ffffff', 0);
-      row.add([card, circle, icon, key, name, info, btn]);
-      return { u, row, icon, key, name, info, btn };
+      const card = this.add.graphics();
+      const strip = this.add.graphics();
+      const iconBg = this.add.graphics({ x: 48, y: 0 });
+      const icon = emoji(this, 48, 0, u.emoji, 26);
+      const chip = this.add.container(70, -17);
+      const chipBg = this.add.circle(0, 0, 13, COLORS.ink).setStrokeStyle(2, tint);
+      const chipText = txt(this, 0, 0, '', 12, HEX.white, { strokeThickness: 0 }).setOrigin(0.5);
+      chip.add([chipBg, chipText]);
+      const key = body(this, 20, -18, '', 12, '#8f84c2').setOrigin(0.5);
+      const name = txt(this, 90, -10, upgradeName(u.id), 17).setOrigin(0, 0.5);
+      const info = body(this, 90, 13, '', 14, '#a99be0').setOrigin(0, 0.5);
+      const bar = this.add.graphics();
+      const pill = this.add.graphics({ x: 610, y: 0 });
+      const priceIcon = emoji(this, 562, -1, '✨', 18);
+      const price = txt(this, 622, 0, '', 17, HEX.ink, { strokeThickness: 0 }).setOrigin(0.5);
+      const hit = this.add.zone(360, 0, 700, 56).setInteractive({ useHandCursor: true });
+      row.add([card, strip, iconBg, icon, chip, key, name, info, bar, pill, priceIcon, price, hit]);
+      const r = { u, tint, row, card, strip, iconBg, icon, chip, chipText, key, name, info, bar, pill, priceIcon, price, state: '' };
+      hit.on('pointerdown', () => { if (!r.locked) this.onBuy(r); });
+      return r;
     });
   }
 
@@ -271,6 +294,29 @@ export default class Game extends Phaser.Scene {
       r.locked = !open;
       r.slot = shown;
       shown++;
+    }
+  }
+
+  // Перерисовка строки только при смене её состояния
+  paintRow(r, look) {
+    if (r.state === look) return;
+    r.state = look;
+    const active = look === 'ready';
+    r.card.clear();
+    r.card.fillStyle(active ? 0x2f1b6b : 0x221448, 1).fillRoundedRect(14, -26, 692, 52, 16);
+    r.card.lineStyle(2, active ? r.tint : 0x342466, active ? 0.9 : 1).strokeRoundedRect(14, -26, 692, 52, 16);
+    r.strip.clear();
+    if (look !== 'locked') r.strip.fillStyle(r.tint, active ? 1 : 0.45).fillRoundedRect(14, -18, 5, 36, 3);
+    r.iconBg.clear();
+    r.iconBg.fillStyle(look === 'locked' ? 0x2a1d52 : r.tint, look === 'locked' ? 1 : 0.22).fillRoundedRect(-22, -22, 44, 44, 12);
+    r.pill.clear();
+    if (look === 'ready') {
+      r.pill.fillStyle(COLORS.ink, 0.6).fillRoundedRect(-78, -18, 156, 40, 20);
+      r.pill.fillStyle(COLORS.lime, 1).fillRoundedRect(-78, -21, 156, 40, 20);
+      r.pill.fillStyle(0xffffff, 0.35).fillRoundedRect(-68, -17, 136, 10, 5);
+    } else if (look === 'wait' || look === 'max') {
+      r.pill.fillStyle(0x120a2a, 1).fillRoundedRect(-78, -20, 156, 40, 20);
+      r.pill.lineStyle(2, 0x3a2b6e, 1).strokeRoundedRect(-78, -20, 156, 40, 20);
     }
   }
 
@@ -298,7 +344,7 @@ export default class Game extends Phaser.Scene {
       }
       const n = Number(ev.key);
       const row = this.rows.find((r) => r.row.visible && !r.locked && r.slot === n - 1);
-      if (row) this.onBuy(row.u, row.btn);
+      if (row) this.onBuy(row);
     });
   }
 
@@ -521,24 +567,26 @@ export default class Game extends Phaser.Scene {
     panel.add(go);
   }
 
-  onBuy(u, btn) {
+  onBuy(r) {
+    const { u } = r;
     const before = lvl(u.id);
     const n = buy(u);
+    const y = r.row.y;
     if (n) {
       sound.buy();
       vibrate(10);
-      pop(this, btn.x, btn.y - 24, n > 1 ? `+${n}` : t('plus_lvl'), 20, HEX.lime, 50);
+      pop(this, 610, y - 26, n > 1 ? `+${n}` : t('plus_lvl'), 20, HEX.lime, 50);
+      this.tweens.add({ targets: r.icon, scale: { from: 1.35, to: 1 }, duration: 220, ease: 'Back.easeOut' });
       if (Math.floor(lvl(u.id) / BALANCE.milestoneEvery) > Math.floor(before / BALANCE.milestoneEvery)) {
         pop(this, 360, 600, `⭐ ${upgradeName(u.id).toUpperCase()} ×2!`, 40, HEX.yellow, 120);
         this.confetti.explode(40, 360, 600);
         sound.prize();
       }
-      this.tweens.add({ targets: btn, scaleX: 0.93, scaleY: 0.9, duration: 60, yoyo: true });
       this.refresh();
       save();
     } else {
       sound.deny();
-      this.tweens.add({ targets: btn, x: btn.x + 6, duration: 40, yoyo: true, repeat: 2 });
+      this.tweens.add({ targets: r.row, x: 6, duration: 40, yoyo: true, repeat: 2 });
     }
   }
 
@@ -575,33 +623,53 @@ export default class Game extends Phaser.Scene {
       })
       .join('   '));
 
-    this.modeBtn.setLabel(state.buyMode === 'max' ? 'MAX' : `×${state.buyMode}`);
+    for (const o of this.modeOpts) {
+      const on = state.buyMode === o.mode;
+      o.pill.clear();
+      if (on) o.pill.fillStyle(COLORS.yellow, 1).fillRoundedRect(-33, -18, 66, 36, 18);
+      o.label.setColor(on ? HEX.ink : '#8f84c2');
+    }
     revealUpgrades();
     this.layoutUpgrades();
     for (const r of this.rows) {
       if (!r.row.visible) continue;
-      const { u, info, btn } = r;
+      const { u } = r;
       if (r.locked) {
-        r.icon.setText('🔒');
-        r.name.setText('???').setAlpha(0.6);
-        info.setText(t('locked_info', { n: format(u.baseCost) }));
-        btn.setVisible(false);
+        this.paintRow(r, 'locked');
+        r.icon.setText('🔒').setAlpha(0.7);
+        r.name.setText('???').setAlpha(0.5);
+        r.info.setText(t('locked_info', { n: format(u.baseCost) }));
+        r.chip.setVisible(false);
+        r.price.setText('');
+        r.priceIcon.setVisible(false);
         r.key.setText('');
+        r.bar.clear();
         continue;
       }
-      r.icon.setText(u.emoji);
+      r.icon.setText(u.emoji).setAlpha(1);
       r.name.setText(upgradeName(u.id)).setAlpha(1);
-      btn.setVisible(true);
-      r.key.setText(this.desktop ? String(r.slot + 1) : '');
       const l = lvl(u.id);
+      r.chip.setVisible(l > 0);
+      r.chipText.setText(String(l));
+      r.key.setText(this.desktop ? String(r.slot + 1) : '');
       const maxed = isMaxed(u);
       const { n, price } = buyPlan(u);
-      btn.setLabel(maxed ? t('max') : `${n > 1 ? `×${n} ` : ''}✨${format(price)}`);
-      btn.setEnabled(!maxed && state.aura >= price);
-      btn.label.setColor(btn.enabled ? HEX.ink : '#9a90c0');
+      const ready = !maxed && state.aura >= price;
+      this.paintRow(r, maxed ? 'max' : ready ? 'ready' : 'wait');
+      r.priceIcon.setVisible(!maxed).setAlpha(ready ? 1 : 0.5);
+      r.price.setText(maxed ? t('max') : `${n > 1 ? `×${n} ` : ''}${format(price)}`)
+        .setColor(ready ? HEX.ink : '#7d70b0');
+      r.priceIcon.x = 622 - r.price.width / 2 - 14;
       const toMs = nextMilestone(l) - l;
-      const ms = (u.type === 'tap' || u.type === 'dps') && l > 0 && toMs <= 5 ? ` · ${t('milestone_soon', { n: toMs })}` : '';
-      info.setText(`${t('up_lvl', { n: l })} · ${this.describe(u, l)}${ms}`);
+      const ms = (u.type === 'tap' || u.type === 'dps') && l > 0 && toMs <= 5 ? `  ${t('milestone_soon', { n: toMs })}` : '';
+      r.info.setText(`${this.describe(u, l)}${ms}`);
+      // полоска «сколько осталось накопить»
+      r.bar.clear();
+      if (!ready && !maxed) {
+        const k = Math.min(1, state.aura / price);
+        r.bar.fillStyle(0x120a2a, 1).fillRoundedRect(532, 22, 156, 5, 3);
+        if (k > 0) r.bar.fillStyle(r.tint, 0.9).fillRoundedRect(532, 22, Math.max(5, 156 * k), 5, 3);
+      }
     }
 
     const ad = activeEffects().find((e) => e.id === 'ad');
