@@ -199,7 +199,7 @@ export function makeBgTexture(scene, key, bg, boss = false) {
   ctx.fillRect(0, 0, W, H);
 
   ctx.save();
-  ctx.globalAlpha = 0.07;
+  ctx.globalAlpha = 0.035;
   ctx.strokeStyle = '#ffffff';
   ctx.fillStyle = '#ffffff';
   if (bg.pattern === 'stripes') {

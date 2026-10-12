@@ -20,6 +20,7 @@ export const state = {
   tasks: { day: '', list: [], bonus: false },
   login: { last: '', streak: 0 },
   buyMode: 1,      // 1 | 10 | 'max'
+  revealed: [],    // какие улучшения игрок уже «увидел»
 };
 
 export const lvl = (id) => state.upgrades[id] || 0;
@@ -55,6 +56,14 @@ export function buyPlan(u) {
   n = Math.max(1, Math.min(n, room));
   return { n, price: costN(u, n) };
 }
+
+// Улучшение открывается, когда аура подбирается к его цене (или оно уже куплено)
+export function revealUpgrades() {
+  for (const u of UPGRADES) {
+    if (!state.revealed.includes(u.id) && (lvl(u.id) > 0 || state.aura >= u.baseCost * 0.5)) state.revealed.push(u.id);
+  }
+}
+export const isRevealed = (u) => state.revealed.includes(u.id);
 
 export const sigmaMult = () => 1 + BALANCE.sigmaBonus * state.sigma;
 
@@ -352,10 +361,10 @@ export function claimLogin() {
 // ---------- сохранения ----------
 
 function snapshot() {
-  const { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel, sigma, prestiges, tasks, login, buyMode } = state;
+  const { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel, sigma, prestiges, tasks, login, buyMode, revealed } = state;
   return {
     aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel,
-    sigma, prestiges, tasks, login, buyMode, savedAt: Date.now(),
+    sigma, prestiges, tasks, login, buyMode, revealed, savedAt: Date.now(),
   };
 }
 
@@ -422,6 +431,7 @@ export async function load() {
     tasks: data.tasks || state.tasks,
     login: data.login || state.login,
     buyMode: data.buyMode || 1,
+    revealed: data.revealed || [],
   });
 
   const sec = Math.min((Date.now() - data.savedAt) / 1000, BALANCE.offlineMaxSec);
@@ -435,6 +445,7 @@ export function resetProgress() {
     aura: 0, totalAura: 0, level: 0, kills: 0, upgrades: {}, effects: [],
     firstPlay: Date.now(), wheel: { day: '', freeUsed: false, ads: 0 },
     sigma: 0, prestiges: 0, tasks: { day: '', list: [], bonus: false }, login: { last: '', streak: 0 },
+    revealed: [],
   });
   saveNow();
 }

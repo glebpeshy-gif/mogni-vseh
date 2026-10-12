@@ -74,6 +74,87 @@ export const tick = () => tone(1400 + Math.random() * 200, 0.03, 'square', 0.08)
 export const prize = () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.22, 'triangle', 0.25, null, i * 0.08));
 export const click = () => tone(800, 0.04, 'triangle', 0.15);
 
+// ---------- «Замогал!»: удар + грустный тромбон «вау-вау-вааа» ----------
+let noiseBuf = null;
+function punch(at, vol = 0.5) {
+  const c = ensure();
+  if (!noiseBuf) {
+    noiseBuf = c.createBuffer(1, c.sampleRate * 0.25, c.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+  }
+  const src = c.createBufferSource();
+  src.buffer = noiseBuf;
+  const bp = c.createBiquadFilter();
+  bp.type = 'lowpass';
+  bp.frequency.value = 900;
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol, at);
+  src.connect(bp).connect(g).connect(sfxBus);
+  src.start(at);
+  // низкий «бум»
+  const o = c.createOscillator();
+  const og = c.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(140, at);
+  o.frequency.exponentialRampToValueAtTime(45, at + 0.18);
+  og.gain.setValueAtTime(vol * 1.2, at);
+  og.gain.exponentialRampToValueAtTime(0.001, at + 0.22);
+  o.connect(og).connect(sfxBus);
+  o.start(at);
+  o.stop(at + 0.25);
+}
+
+// одна нота «тромбона»: пила через фильтр, лёгкое скольжение вниз, на последней — вибрато
+function bone(freq, at, dur, vibrato = false) {
+  const c = ensure();
+  const o = c.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(freq * 1.02, at);
+  o.frequency.linearRampToValueAtTime(freq * 0.97, at + dur);
+  if (vibrato) {
+    const lfo = c.createOscillator();
+    const lg = c.createGain();
+    lfo.frequency.value = 6;
+    lg.gain.value = freq * 0.03;
+    lfo.connect(lg).connect(o.frequency);
+    lfo.start(at);
+    lfo.stop(at + dur);
+  }
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(700, at);
+  lp.frequency.linearRampToValueAtTime(1300, at + 0.06);
+  lp.frequency.linearRampToValueAtTime(600, at + dur);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(0.32, at + 0.04);
+  g.gain.setValueAtTime(0.28, at + dur * 0.7);
+  g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+  o.connect(lp).connect(g).connect(sfxBus);
+  o.start(at);
+  o.stop(at + dur + 0.02);
+}
+
+let lastMog = 0;
+// boss = true — полная версия из 4 нот
+export function mogged(boss = false) {
+  if (paused) return;
+  const c = ensure();
+  const t0 = c.currentTime + 0.01;
+  punch(t0, boss ? 0.7 : 0.5);
+  // если соперники падают очень часто — только удар, без тромбона
+  if (!boss && t0 - lastMog < 0.9) return;
+  lastMog = t0;
+  const notes = boss ? [196, 185, 175, 165] : [196, 147];
+  const lens = boss ? [0.32, 0.32, 0.32, 1.0] : [0.22, 0.55];
+  let at = t0 + 0.12;
+  notes.forEach((f, i) => {
+    bone(f, at, lens[i], i === notes.length - 1);
+    at += lens[i] + 0.04;
+  });
+}
+
 // ---------- фоновая музыка: короткий чиптюн-луп ----------
 const BPM = 124;
 const STEP = 60 / BPM / 2; // восьмые
