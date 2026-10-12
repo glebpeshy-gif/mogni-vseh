@@ -9,6 +9,11 @@ let ysdk = null;
 let player = null;
 let adBusy = false;
 
+// Тестовый режим: локально или на хостинге без Yandex SDK (например, GitHub Pages для друзей).
+// Реклама тогда — заглушка. На Яндекс Играх SDK загружается, и заглушки нет.
+let testMode = false;
+const isTest = () => testMode || isLocal();
+
 export const isLocal = () =>
   /^(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.|172\.)/.test(location.hostname) || location.protocol === 'file:';
 
@@ -88,7 +93,8 @@ export async function init() {
     ysdk.on('game_api_resume', () => setReason('platform', false));
     try { player = await ysdk.getPlayer({ scopes: false }); } catch {}
   } catch (e) {
-    console.warn('[sdk] не удалось инициализировать', e);
+    console.warn('[sdk] Yandex SDK нет — тестовый режим', e);
+    testMode = true;
   }
 }
 
@@ -126,7 +132,7 @@ function localAd(kind) {
     const el = document.createElement('div');
     el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;color:#fff;display:flex;' +
       'align-items:center;justify-content:center;font:600 22px Rubik,Arial;text-align:center';
-    el.textContent = `ТЕСТ: ${kind === 'rewarded' ? 'реклама за награду' : 'полноэкранная реклама'}\n(только локально)`;
+    el.textContent = `ТЕСТ: ${kind === 'rewarded' ? 'реклама за награду' : 'полноэкранная реклама'}\n(на Яндекс Играх здесь будет настоящая реклама)`;
     el.style.whiteSpace = 'pre-line';
     document.body.appendChild(el);
     setTimeout(() => { el.remove(); resolve(); }, 1500);
@@ -142,7 +148,7 @@ export function showFullscreen() {
   const done = (shown) => { adBusy = false; setReason('ad', false); return shown; };
 
   if (!ysdk) {
-    if (!isLocal()) return Promise.resolve(done(false));
+    if (!isTest()) return Promise.resolve(done(false));
     return localAd('fullscreen').then(() => done(true));
   }
   return new Promise((resolve) => {
@@ -164,7 +170,7 @@ export function showRewarded() {
   const done = (status) => { adBusy = false; setReason('ad', false); return status; };
 
   if (!ysdk) {
-    if (!isLocal()) return Promise.resolve(done('error'));
+    if (!isTest()) return Promise.resolve(done('error'));
     return localAd('rewarded').then(() => done('ok'));
   }
   return new Promise((resolve) => {
