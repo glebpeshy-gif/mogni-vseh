@@ -4,16 +4,17 @@
 // bg — фон соперника: градиент сверху вниз, цвет свечения и стикеры на фоне.
 // pattern: stripes / dots / grid — узор поверх градиента.
 
+// Порядок — по росту гигачадности: от растерянного нормиса до чада-викинга
 export const ENEMIES = [
   { id: 'normis',    emoji: '😐', bg: { top: '#3b4266', bottom: '#151827', glow: '#8fa3ff', pattern: 'grid',    stickers: ['😐', '📄', '☕', '🥱', '💤'] } },
-  { id: 'tiktoker',  emoji: '🤳', bg: { top: '#1e2a5c', bottom: '#0a0a1a', glow: '#4f7bff', pattern: 'stripes', stickers: ['🖤', '⛓️', '🎧', '🦇', '💙'] } },
-  { id: 'streamer',  emoji: '🎧', bg: { top: '#3b1f7a', bottom: '#0d0a22', glow: '#9146ff', pattern: 'grid',    stickers: ['🎮', '🎧', '💬', '🕹️', '🔴'] } },
   { id: 'otlichnik', emoji: '🤓', bg: { top: '#1f5a40', bottom: '#0a1f17', glow: '#b6ff3b', pattern: 'grid',    stickers: ['📚', '✏️', '📐', '🧮', '💯'] } },
-  { id: 'kachok',    emoji: '💪', bg: { top: '#6a1d0b', bottom: '#1a0804', glow: '#ff8a3d', pattern: 'stripes', stickers: ['🏋️', '💪', '🥩', '🔥', '🥤'] } },
+  { id: 'streamer',  emoji: '🎧', bg: { top: '#3b1f7a', bottom: '#0d0a22', glow: '#9146ff', pattern: 'grid',    stickers: ['🎮', '🎧', '💬', '🕹️', '🔴'] } },
   { id: 'patsan',    emoji: '🧢', bg: { top: '#3a3f4a', bottom: '#121419', glow: '#ff8a3d', pattern: 'grid',    stickers: ['🍭', '🧢', '🛹', '👟', '🏚️'] } },
+  { id: 'tiktoker',  emoji: '🤳', bg: { top: '#1e2a5c', bottom: '#0a0a1a', glow: '#4f7bff', pattern: 'stripes', stickers: ['🖤', '⛓️', '🎧', '🦇', '💙'] } },
   { id: 'animetyan', emoji: '🌸', bg: { top: '#6b1f58', bottom: '#1e0b2e', glow: '#ffb7e0', pattern: 'dots',    stickers: ['🌸', '✨', '🎀', '💖', '🍡'] } },
   { id: 'cat',       emoji: '😼', bg: { top: '#5a3f15', bottom: '#160e04', glow: '#ffd27a', pattern: 'dots',    stickers: ['🐟', '🧶', '🐾', '😼', '🥛'] } },
   { id: 'bloger',    emoji: '💸', bg: { top: '#0f4a39', bottom: '#03140f', glow: '#3dff9a', pattern: 'dots',    stickers: ['💸', '💰', '🤑', '💎', '📈'] } },
+  { id: 'kachok',    emoji: '💪', bg: { top: '#6a1d0b', bottom: '#1a0804', glow: '#ff8a3d', pattern: 'stripes', stickers: ['🏋️', '💪', '🥩', '🔥', '🥤'] } },
   { id: 'chad',      emoji: '🧔', bg: { top: '#1f3a5a', bottom: '#0a1626', glow: '#7fd8ff', pattern: 'stripes', stickers: ['👍', '🛡️', '❄️', '🏔️', '🗿'] } },
 ];
 

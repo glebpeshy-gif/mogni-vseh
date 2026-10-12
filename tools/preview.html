@@ -8,8 +8,8 @@
 </style></head>
 <body><div class="grid" id="g"></div>
 <script>
-  const names = ['enemies/normis','enemies/tiktoker','enemies/streamer','enemies/otlichnik','enemies/kachok','enemies/patsan',
-    'enemies/animetyan','enemies/cat','enemies/bloger','enemies/chad','enemies/boss_sigma','enemies/boss_gigachad','enemies/boss_king',
+  const names = ['enemies/normis','enemies/otlichnik','enemies/streamer','enemies/patsan','enemies/tiktoker','enemies/animetyan',
+    'enemies/cat','enemies/bloger','enemies/kachok','enemies/chad','enemies/boss_sigma','enemies/boss_gigachad','enemies/boss_king',
     'player/stage1','player/stage2','player/stage3','player/stage4','player/stage5'];
   document.getElementById('g').innerHTML = names.map((n) =>
     `<figure><img src="/src/art/${n}.svg?${Date.now()}"><figcaption>${n}</figcaption></figure>`).join('');
