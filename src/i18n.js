@@ -124,6 +124,17 @@ const UI = {
     dock_settings: 'Настройки',
     locked_info: 'откроется, когда накопишь ✨{n}',
     milestone_soon: '⭐ ×2 через {n} ур.',
+    dock_style: 'Шмот',
+    style_title: '💅 ШМОТ',
+    style_hint: '💅 вайб даётся за соперников, боссов,\nзадания и серию дней',
+    style_buy: 'КУПИТЬ · 💅 {n}',
+    style_need: 'НУЖНО 💅 {n}',
+    style_wear: 'НАДЕТЬ',
+    style_off: 'СНЯТЬ',
+    style_owned: 'есть',
+    style_worn: 'надето ✓',
+    style_none: 'Ничего',
+    vibe_gain: '+{n} 💅',
   },
   en: {
     title: 'Mog Everyone',
@@ -232,6 +243,17 @@ const UI = {
     dock_settings: 'Settings',
     locked_info: 'unlocks when you have ✨{n}',
     milestone_soon: '⭐ ×2 in {n} lvl',
+    dock_style: 'Drip',
+    style_title: '💅 DRIP',
+    style_hint: '💅 vibe comes from opponents, bosses,\ntasks and daily streak',
+    style_buy: 'BUY · 💅 {n}',
+    style_need: 'NEED 💅 {n}',
+    style_wear: 'WEAR',
+    style_off: 'TAKE OFF',
+    style_owned: 'owned',
+    style_worn: 'worn ✓',
+    style_none: 'Nothing',
+    vibe_gain: '+{n} 💅',
   },
 };
 
@@ -264,10 +286,45 @@ const NAMES = {
   stage: [
     ['Нормис', 'Normie'],
     ['Мьюер', 'Mewer'],
+    ['Луксмаксер', 'Looksmaxxer'],
     ['Красавчик', 'Pretty Boy'],
     ['Чад', 'Chad'],
     ['Гигачад', 'Gigachad'],
   ],
+  cosmetic: {
+    cap_back: ['Кепка задом наперёд', 'Backwards cap'],
+    pompom: ['Шапка с помпоном', 'Pom-pom beanie'],
+    ushanka: ['Ушанка', 'Ushanka'],
+    cat_ears: ['Кошачьи ушки', 'Cat ears'],
+    halo: ['Нимб «Аура +1000»', 'Aura +1000 halo'],
+    tiny: ['Мини-очки', 'Tiny shades'],
+    nerd: ['Очки ботана', 'Nerd glasses'],
+    hearts: ['Очки-сердечки', 'Heart glasses'],
+    pixel: ['Пиксельные очки', 'Pixel shades'],
+    laser: ['Лазерные глаза', 'Laser eyes'],
+    tee67: ['Футболка «67»', '"67" tee'],
+    tracksuit: ['Спортивка с района', 'Block tracksuit'],
+    grandpa: ['Свитер как у деда', 'Grandpa sweater'],
+    hoodie_sigma: ['Худи «Σ»', 'Sigma hoodie'],
+    suit: ['Пиджак бизнесмена', 'Business suit'],
+    seeds: ['Семки', 'Sunflower seeds'],
+    bag: ['Пакет с пакетами', 'Bag of bags'],
+    shawarma: ['Шаурма', 'Shawarma'],
+    matcha: ['Матча-латте', 'Matcha latte'],
+    dubai: ['Дубайский шоколад', 'Dubai chocolate'],
+    slay: ['Слэй-блёстки', 'Slay sparkles'],
+    brainrot: ['Брейнрот', 'Brainrot'],
+    phonk: ['Фонк', 'Phonk'],
+    sigma_bolt: ['Сигма-молнии', 'Sigma lightning'],
+    aura_farm: ['Аура-фарминг', 'Aura farming'],
+  },
+  slot: {
+    hat: ['Шапки', 'Hats'],
+    glasses: ['Очки', 'Glasses'],
+    top: ['Верх', 'Tops'],
+    hand: ['В руке', 'In hand'],
+    effect: ['Эффекты', 'Effects'],
+  },
   wheelLabel: {
     tap3: ['×3\nТАП', '×3\nTAP'],
     aura: ['+\nАУРА', '+\nAURA'],
@@ -328,6 +385,8 @@ const idx = () => (lang() === 'ru' ? 0 : 1);
 export const enemyName = (id) => NAMES.enemy[id][idx()];
 export const upgradeName = (id) => NAMES.upgrade[id][idx()];
 export const stageName = (i) => NAMES.stage[i][idx()];
+export const cosmeticName = (id) => NAMES.cosmetic[id][idx()];
+export const slotName = (id) => NAMES.slot[id][idx()];
 export const wheelLabel = (id) => NAMES.wheelLabel[id][idx()];
 export const wheelText = (id) => NAMES.wheelText[id]?.[idx()] ?? '';
 export const phrases = () => PHRASES[lang()];

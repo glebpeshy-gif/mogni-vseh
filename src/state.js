@@ -1,4 +1,4 @@
-import { UPGRADES, ENEMIES, BOSSES, PLAYER_STAGES, BALANCE, WHEEL, GOLDEN, TASKS, LOGIN_REWARDS } from './data.js';
+import { UPGRADES, ENEMIES, BOSSES, PLAYER_STAGES, BALANCE, WHEEL, GOLDEN, TASKS, LOGIN_REWARDS, COSMETICS, VIBE } from './data.js';
 import { t, upgradeName, wheelText, botNames } from './i18n.js';
 import * as sdk from './sdk.js';
 
@@ -21,7 +21,29 @@ export const state = {
   login: { last: '', streak: 0 },
   buyMode: 1,      // 1 | 10 | 'max'
   revealed: [],    // какие улучшения игрок уже «увидел»
+  vibe: 0,         // 💅 валюта шмота
+  owned: [],       // купленный шмот
+  equipped: {},    // { hat, glasses, top, hand, effect }
 };
+
+// ---------- шмот ----------
+export function addVibe(n) { state.vibe += n; }
+export const owns = (id) => state.owned.includes(id);
+export function buyCosmetic(id) {
+  const item = COSMETICS.find((x) => x.id === id);
+  if (!item || owns(id) || state.vibe < item.price) return false;
+  state.vibe -= item.price;
+  state.owned.push(id);
+  state.equipped[item.slot] = id;
+  saveNow();
+  return true;
+}
+export function equip(slot, id) {
+  if (id && !owns(id)) return;
+  if (id) state.equipped[slot] = id; else delete state.equipped[slot];
+  save();
+}
+export const canBuySomething = () => COSMETICS.some((x) => !owns(x.id) && state.vibe >= x.price);
 
 export const lvl = (id) => state.upgrades[id] || 0;
 
@@ -267,6 +289,7 @@ function pickWeighted(list) {
 export function catchGolden() {
   const g = pickWeighted(GOLDEN);
   track('golden');
+  addVibe(VIBE.golden);
   if (g.aura) {
     const amount = enemyReward(state.level) * g.aura;
     addAura(amount);
@@ -314,6 +337,7 @@ export function claimTask(i) {
   task.claimed = true;
   const amount = taskReward();
   addAura(amount);
+  addVibe(VIBE.task);
   saveNow();
   return amount;
 }
@@ -352,6 +376,7 @@ export function claimLogin() {
   const amount = loginReward(day);
   addAura(amount);
   const sigma = day === LOGIN_REWARDS.length ? 1 : 0;
+  addVibe(VIBE.loginPerDay * day);
   state.sigma += sigma;
   state.login = { last: today(), streak: day };
   saveNow();
@@ -361,10 +386,10 @@ export function claimLogin() {
 // ---------- сохранения ----------
 
 function snapshot() {
-  const { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel, sigma, prestiges, tasks, login, buyMode, revealed } = state;
+  const { aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel, sigma, prestiges, tasks, login, buyMode, revealed, vibe, owned, equipped } = state;
   return {
     aura, totalAura, level, kills, upgrades, settings, firstPlay, effects, wheel,
-    sigma, prestiges, tasks, login, buyMode, revealed, savedAt: Date.now(),
+    sigma, prestiges, tasks, login, buyMode, revealed, vibe, owned, equipped, savedAt: Date.now(),
   };
 }
 
@@ -432,6 +457,9 @@ export async function load() {
     login: data.login || state.login,
     buyMode: data.buyMode || 1,
     revealed: data.revealed || [],
+    vibe: data.vibe || 0,
+    owned: data.owned || [],
+    equipped: data.equipped || {},
   });
 
   const sec = Math.min((Date.now() - data.savedAt) / 1000, BALANCE.offlineMaxSec);
@@ -445,7 +473,7 @@ export function resetProgress() {
     aura: 0, totalAura: 0, level: 0, kills: 0, upgrades: {}, effects: [],
     firstPlay: Date.now(), wheel: { day: '', freeUsed: false, ads: 0 },
     sigma: 0, prestiges: 0, tasks: { day: '', list: [], bonus: false }, login: { last: '', streak: 0 },
-    revealed: [],
+    revealed: [], vibe: 0, owned: [], equipped: {},
   });
   saveNow();
 }

@@ -3,6 +3,7 @@ import { state, dailyTasks } from '../state.js';
 import { closeTopModal } from '../theme.js';
 import { openTasks } from '../features/daily.js';
 import { openPrestige } from '../features/prestige.js';
+import { openWardrobe } from '../features/wardrobe.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -36,5 +37,12 @@ export async function run(game, shot) {
     openTasks(g);
   }
   if (shot === 'prestige') openPrestige(g, { onRebirth() {} });
+  if (shot === 'style') {
+    Object.assign(state, { vibe: 420, owned: ['cap_back', 'tiny', 'tee67'], equipped: { hat: 'cap_back', glasses: 'tiny', hand: 'shawarma' } });
+    state.owned.push('shawarma');
+    g.refreshLook();
+    openWardrobe(g, { onChange: () => g.refreshLook() });
+  }
+  if (shot === 'main') { state.equipped = { hat: 'pompom', hand: 'dubai' }; state.owned = ['pompom', 'dubai']; g.refreshLook(); }
   g.refresh();
 }

@@ -39,11 +39,12 @@ export const UPGRADES = [
 
 // Внешность игрока меняется от суммы уровней прокачки
 export const PLAYER_STAGES = [
-  { from: 0,   emoji: '😐' },
-  { from: 10,  emoji: '🙂' },
-  { from: 30,  emoji: '😏' },
-  { from: 60,  emoji: '😎' },
-  { from: 110, emoji: '🗿' },
+  { from: 0,   emoji: '😩' }, // Нормис
+  { from: 8,   emoji: '👅' }, // Мьюер
+  { from: 20,  emoji: '🧖' }, // Луксмаксер
+  { from: 40,  emoji: '😏' }, // Красавчик
+  { from: 70,  emoji: '😎' }, // Чад
+  { from: 110, emoji: '🗿' }, // Гигачад
 ];
 
 export const BALANCE = {
@@ -113,3 +114,42 @@ export const WHEEL = [
 ];
 
 export const EFFECT_ICONS = { tap: '👆', dps: '⚙️', all: '💎', crit: '💥', autotap: '🌪️' };
+
+// Шмот: мемы СНГ 2025–26. price — в 💅 вайбе
+export const STYLE_SLOTS = [
+  { id: 'hat', emoji: '🧢' },
+  { id: 'glasses', emoji: '🕶️' },
+  { id: 'top', emoji: '👕' },
+  { id: 'hand', emoji: '🍫' },
+  { id: 'effect', emoji: '✨' },
+];
+export const COSMETICS = [
+  { id: 'cap_back',     slot: 'hat',     emoji: '🧢', price: 40 },
+  { id: 'pompom',       slot: 'hat',     emoji: '🧶', price: 90 },
+  { id: 'ushanka',      slot: 'hat',     emoji: '❄️', price: 160 },
+  { id: 'cat_ears',     slot: 'hat',     emoji: '🐱', price: 250 },
+  { id: 'halo',         slot: 'hat',     emoji: '😇', price: 600 },
+  { id: 'tiny',         slot: 'glasses', emoji: '🕶️', price: 50 },
+  { id: 'nerd',         slot: 'glasses', emoji: '🤓', price: 80 },
+  { id: 'hearts',       slot: 'glasses', emoji: '😍', price: 150 },
+  { id: 'pixel',        slot: 'glasses', emoji: '😎', price: 300 },
+  { id: 'laser',        slot: 'glasses', emoji: '🔴', price: 700 },
+  { id: 'tee67',        slot: 'top',     emoji: '👕', price: 67 },
+  { id: 'tracksuit',    slot: 'top',     emoji: '🏃', price: 120 },
+  { id: 'grandpa',      slot: 'top',     emoji: '🦌', price: 180 },
+  { id: 'hoodie_sigma', slot: 'top',     emoji: '🖤', price: 350 },
+  { id: 'suit',         slot: 'top',     emoji: '👔', price: 550 },
+  { id: 'seeds',        slot: 'hand',    emoji: '🌻', price: 30 },
+  { id: 'bag',          slot: 'hand',    emoji: '🛍️', price: 70 },
+  { id: 'shawarma',     slot: 'hand',    emoji: '🌯', price: 140 },
+  { id: 'matcha',       slot: 'hand',    emoji: '🍵', price: 220 },
+  { id: 'dubai',        slot: 'hand',    emoji: '🍫', price: 400 },
+  { id: 'slay',         slot: 'effect',  emoji: '💅', price: 200 },
+  { id: 'brainrot',     slot: 'effect',  emoji: '🧠', price: 350 },
+  { id: 'phonk',        slot: 'effect',  emoji: '💀', price: 500 },
+  { id: 'sigma_bolt',   slot: 'effect',  emoji: '⚡', price: 750 },
+  { id: 'aura_farm',    slot: 'effect',  emoji: '🌬️', price: 1000 },
+];
+
+// Сколько 💅 вайба за что
+export const VIBE = { kill: 1, boss: 10, task: 15, golden: 5, loginPerDay: 5 };

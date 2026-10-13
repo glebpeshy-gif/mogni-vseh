@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Игрок — предпросмотр</title>
+<style>
+  body { margin: 0; background: #1a0d4f; font: 600 12px Arial; color: #fff; }
+  h3 { margin: 8px 12px 0; font-size: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+  figure { margin: 0; background: #2c1a66; border-radius: 12px; padding: 4px; text-align: center; width: 150px; }
+  img { width: 142px; }
+</style></head>
+<body><div id="root"></div>
+<script type="module">
+  import { playerSVG } from '/src/art/builder.js';
+  const url = (o) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(playerSVG({ ...o, size: 300 }));
+  const fig = (o, cap) => `<figure><img src="${url(o)}"><figcaption>${cap}</figcaption></figure>`;
+  const names = ['Нормис', 'Мьюер', 'Луксмаксер', 'Красавчик', 'Чад', 'Гигачад'];
+  let html = '<h3>Стадии</h3><div class="row">' + names.map((n, i) => fig({ stage: i }, n)).join('') + '</div>';
+  html += '<h3>Настроения (Красавчик)</h3><div class="row">' + ['idle', 'mog', 'win', 'sad'].map((m) => fig({ stage: 3, mood: m }, m)).join('') + '</div>';
+  const slots = { hat: ['ushanka', 'cap_back', 'cat_ears', 'pompom', 'halo'], glasses: ['pixel', 'hearts', 'tiny', 'nerd', 'laser'],
+    top: ['hoodie_sigma', 'tracksuit', 'grandpa', 'suit', 'tee67'], hand: ['dubai', 'matcha', 'bag', 'seeds', 'shawarma'],
+    effect: ['aura_farm', 'brainrot', 'phonk', 'slay', 'sigma_bolt'] };
+  for (const [slot, items] of Object.entries(slots)) {
+    html += `<h3>${slot}</h3><div class="row">` + items.map((id, i) => fig({ stage: [0, 2, 3, 4, 5][i], eq: { [slot]: id } }, id)).join('') + '</div>';
+  }
+  document.getElementById('root').innerHTML = html;
+</script></body></html>

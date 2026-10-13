@@ -4,7 +4,7 @@ import {
   state, stats, lvl, isMaxed, buy, enemyFor, enemyHp, enemyReward,
   isBoss, playerStage, addAura, save, format, activeEffects, addEffect, hasEffect, wheelStatus,
   buyPlan, prestigeGain, catchGolden, track, trackMax, tasksClaimable, loginStatus,
-  sigmaMult, nextMilestone, isRevealed, revealUpgrades,
+  sigmaMult, nextMilestone, isRevealed, revealUpgrades, addVibe, canBuySomething,
 } from '../state.js';
 import {
   COLORS, HEX, txt, body, emoji, button, drawCard, pop, makeTextures, makeBgTexture, hexToInt,
@@ -16,6 +16,9 @@ import { openLeaderboard } from '../features/leaderboard.js';
 import { openSettings, applySettings, vibrate } from '../features/settings.js';
 import { openTasks, openLogin } from '../features/daily.js';
 import { openPrestige } from '../features/prestige.js';
+import { openWardrobe } from '../features/wardrobe.js';
+import { playerTextures } from '../playerArt.js';
+import { VIBE } from '../data.js';
 import * as sdk from '../sdk.js';
 import * as sound from '../sound.js';
 
@@ -162,10 +165,11 @@ export default class Game extends Phaser.Scene {
       ['📋', 'dock_tasks', COLORS.lime, () => openTasks(this, { onChange: () => this.refresh() })],
       ['🎰', 'dock_wheel', COLORS.pink, () => openWheel(this, { onPrize: () => this.onWheelPrize(), onClose: () => this.refresh() })],
       ['🗿', 'dock_prestige', COLORS.purple, () => openPrestige(this, { onRebirth: (got) => this.restart({ rebirth: got }) })],
+      ['💅', 'dock_style', COLORS.yellow, () => this.openStyle()],
       ['⚙️', 'dock_settings', COLORS.gray, () => openSettings(this, { onRestart: () => this.restart() })],
     ];
-    this.dock = items.map(([icon, label, color, onClick], i) => this.dockButton(120 + i * 120, 158, icon, t(label), color, onClick));
-    [, this.tasksBadge, this.wheelBadge, this.prestigeBadge] = this.dock.map((b) => this.addBadge(b));
+    this.dock = items.map(([icon, label, color, onClick], i) => this.dockButton(70 + i * 116, 158, icon, t(label), color, onClick));
+    [, this.tasksBadge, this.wheelBadge, this.prestigeBadge, this.styleBadge] = this.dock.map((b) => this.addBadge(b));
   }
 
   addBadge(btn) {
@@ -217,11 +221,17 @@ export default class Game extends Phaser.Scene {
     this.comboText = txt(this, 360, 708, '', 22, HEX.yellow).setOrigin(0.5).setDepth(30).setAlpha(0);
 
     // игрок — компактно слева внизу
-    this.playerFrame = this.add.graphics({ x: 70, y: 652 });
-    this.playerFrame.fillStyle(COLORS.card, 0.9).fillCircle(0, 0, 50);
-    this.playerFrame.lineStyle(4, COLORS.lime, 1).strokeCircle(0, 0, 50);
-    this.playerHolder = this.add.container(70, 650);
-    this.playerName = body(this, 70, 714, '', 15, HEX.lime, { stroke: HEX.ink, strokeThickness: 4 }).setOrigin(0.5);
+    // игрок: живой стикер, меняет настроение; тап по нему — «Шмот»
+    this.playerHolder = this.add.container(84, 636).setDepth(25);
+    this.playerImg = this.add.image(0, 0, '__DEFAULT').setVisible(false);
+    this.playerHolder.add(this.playerImg);
+    this.tweens.add({ targets: this.playerImg, y: -5, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const playerHit = this.add.zone(84, 640, 150, 160).setInteractive({ useHandCursor: true }).setDepth(26);
+    playerHit.on('pointerdown', () => { sound.click(); this.openStyle(); });
+    this.mood = 'idle';
+    this.moodTex = {};
+    this.lookKey = '';
+    this.playerName = body(this, 84, 718, '', 15, HEX.lime, { stroke: HEX.ink, strokeThickness: 4 }).setOrigin(0.5).setDepth(26);
     this.playerStageIndex = -1;
 
     this.boostBtn = button(this, 622, 656, 176, 72, '', COLORS.purple, () => this.watchBoost(), { size: 15 });
@@ -403,6 +413,7 @@ export default class Game extends Phaser.Scene {
       this.lastTapAt = now;
       track('taps');
       trackMax('combo', this.combo);
+      this.setMood('mog', 700);
       this.updateCombo(this.comboMult() > before);
     }
     const dmg = s.tap * (crit ? BALANCE.critMult : 1) * (auto ? 1 : this.comboMult());
@@ -493,6 +504,9 @@ export default class Game extends Phaser.Scene {
     state.level++;
     track('kills');
     if (wasBoss) track('boss');
+    addVibe(wasBoss ? VIBE.boss : VIBE.kill);
+    if (wasBoss) pop(this, 360, 520, t('vibe_gain', { n: VIBE.boss }), 34, HEX.yellow, 100);
+    this.setMood('win', 1100);
 
     sound.mogged(wasBoss);
     vibrate(wasBoss ? [60, 40, 60] : 25);
@@ -515,6 +529,7 @@ export default class Game extends Phaser.Scene {
 
   bossFailed() {
     this.dying = true;
+    this.setMood('sad', 4000);
     sound.fail();
     vibrate(200);
     this.tweens.add({
@@ -681,6 +696,7 @@ export default class Game extends Phaser.Scene {
 
     this.wheelBadge.setVisible(wheelStatus().free);
     this.tasksBadge.setVisible(tasksClaimable());
+    this.styleBadge.setVisible(canBuySomething());
     this.prestigeBadge.setVisible(prestigeGain() > 0);
 
     this.updatePlayer();
@@ -696,6 +712,33 @@ export default class Game extends Phaser.Scene {
     }
   }
 
+  openStyle() {
+    openWardrobe(this, { onChange: () => { this.refreshLook(); this.refresh(); } });
+  }
+
+  // Пересобрать текстуры игрока (стадия или шмот поменялись)
+  refreshLook() {
+    const look = { stage: playerStage().index, eq: { ...state.equipped }, size: 300 };
+    const key = JSON.stringify(look);
+    if (key === this.lookKey) return;
+    this.lookKey = key;
+    playerTextures(this, look).then((tex) => {
+      if (this.lookKey !== key || !this.playerImg.active) return;
+      this.moodTex = tex;
+      this.playerImg.setTexture(tex[this.mood] || tex.idle).setVisible(true).setDisplaySize(150, 150);
+    });
+  }
+
+  // Настроение: mog — тапает, win — замогал, sad — проиграл боссу
+  setMood(mood, ms = 0) {
+    if (this.mood === 'win' && mood === 'mog') return; // радость не перебиваем
+    this.mood = mood;
+    const key = this.moodTex[mood];
+    if (key) this.playerImg.setTexture(key).setDisplaySize(150, 150);
+    this.moodTimer?.remove();
+    if (ms) this.moodTimer = this.time.delayedCall(ms, () => { this.mood = ''; this.setMood('idle'); });
+  }
+
   updatePlayer() {
     const st = playerStage();
     if (st.index === this.playerStageIndex) return;
@@ -703,17 +746,17 @@ export default class Game extends Phaser.Scene {
     this.playerStageIndex = st.index;
     const name = stageName(st.index).toUpperCase();
 
-    this.playerHolder.removeAll(true);
-    this.playerHolder.add(this.makeArt(`player_${st.index + 1}`, st.emoji, 96));
+    this.refreshLook();
     this.playerName.setText(t('you_stage', { s: name })).setScale(1);
-    this.playerName.setScale(Math.min(1, 136 / this.playerName.width)); // длинные имена ужимаем
+    this.playerName.setScale(Math.min(1, 150 / this.playerName.width)); // длинные имена ужимаем
 
     if (upgraded) {
       this.playerHolder.setScale(0);
-      this.tweens.add({ targets: this.playerHolder, scale: 1, duration: 600, ease: 'Elastic.easeOut' });
-      this.confetti.explode(40, 70, 650);
+      this.tweens.add({ targets: this.playerHolder, scale: 1, duration: 700, ease: 'Elastic.easeOut' });
+      this.confetti.explode(50, 84, 636);
       pop(this, 360, 560, t('glowup', { s: name }), 40, HEX.lime, 120);
       sound.prize();
+      this.setMood('win', 1500);
     }
   }
 
