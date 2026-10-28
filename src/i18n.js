@@ -11,7 +11,11 @@ export const LANGS = [
 // Языки, для которых показываем русскую версию
 const RU_LIKE = ['ru', 'be', 'kk', 'uk', 'uz'];
 
+// Только для скриншотов: ?shot=main&lang=en
+const devLang = import.meta.env.DEV ? new URLSearchParams(location.search).get('lang') : null;
+
 export function lang() {
+  if (devLang) return devLang;
   if (state.settings.lang) return state.settings.lang;
   return RU_LIKE.includes(sdk.lang()) ? 'ru' : 'en';
 }
@@ -64,9 +68,17 @@ const UI = {
     wheel_hint_next: 'Новый бесплатный спин через {t}',
     wheel_won: 'ВЫПАЛО!',
     prize_upgrade: '{e} {name} +1 ур.',
-    lb_title: '🏆 ТОП ПО АУРЕ',
+    lb_title: '🏆 ТОП МОГЕРОВ',
+    lb_sub: 'Сколько соперников замогал',
+    lb_anon: 'Аноним',
+    lb_login: 'ВОЙТИ И ПОПАСТЬ В ТОП',
+    lb_login_hint: 'Войди в аккаунт Яндекса,\nчтобы твои моги попали в таблицу',
+    lb_loading: 'Загружаем топ...',
+    lb_empty: 'Таблица пока пустая.\nЗамогай кого-нибудь первым 🗿',
+    lb_error: 'Не удалось загрузить топ,\nпопробуй позже',
+    lb_rank: 'Твоё место: #{n}',
     lb_you: 'ТЫ 😎',
-    lb_ahead: 'Набери ещё ✨ {n},\nчтобы обогнать {name}',
+    lb_ahead: 'Замогай ещё 🗿 {n},\nчтобы обогнать {name}',
     lb_first: 'Ты №1. Абсолютный мог 🗿',
     settings_title: '⚙️ НАСТРОЙКИ',
     set_lang: 'Язык',
@@ -183,9 +195,17 @@ const UI = {
     wheel_hint_next: 'Next free spin in {t}',
     wheel_won: 'YOU WON!',
     prize_upgrade: '{e} {name} +1 lvl',
-    lb_title: '🏆 AURA LEADERBOARD',
+    lb_title: '🏆 TOP MOGGERS',
+    lb_sub: 'Opponents mogged',
+    lb_anon: 'Anonymous',
+    lb_login: 'LOG IN TO JOIN THE TOP',
+    lb_login_hint: 'Log in to your Yandex account\nto get your mogs on the board',
+    lb_loading: 'Loading the top...',
+    lb_empty: 'The board is empty.\nBe the first to mog 🗿',
+    lb_error: "Couldn't load the top,\ntry again later",
+    lb_rank: 'Your rank: #{n}',
     lb_you: 'YOU 😎',
-    lb_ahead: 'Get ✨ {n} more\nto pass {name}',
+    lb_ahead: 'Mog 🗿 {n} more\nto pass {name}',
     lb_first: "You're #1. Absolute mog 🗿",
     settings_title: '⚙️ SETTINGS',
     set_lang: 'Language',

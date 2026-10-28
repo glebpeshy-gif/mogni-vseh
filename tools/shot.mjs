@@ -1,16 +1,18 @@
 // Скриншоты игры для проверки (нужен запущенный npm run dev и Google Chrome).
 // node tools/shot.mjs <папка> имя=URL [имя=URL ...]
 // Пример: node tools/shot.mjs /tmp/shots main=http://localhost:5173/?shot=main
+// Размер: W=405 H=720 SCALE=1 (SCALE=2.6667 → 1080×1920 для скриншотов в Консоль), язык — &lang=en в адресе
 import { spawn } from 'node:child_process';
 import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
 
 const [outDir, ...jobs] = process.argv.slice(2);
 mkdirSync(outDir, { recursive: true });
+const W = +(process.env.W || 405), H = +(process.env.H || 720), SCALE = +(process.env.SCALE || 1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const prof = `${outDir}/.chrome-prof`;
 rmSync(prof, { recursive: true, force: true });
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  ['--headless=new', '--remote-debugging-port=9334', `--user-data-dir=${prof}`, '--window-size=405,720', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
+  ['--headless=new', '--remote-debugging-port=9334', `--user-data-dir=${prof}`, `--window-size=${W},${H}`, '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
 for (let i = 0; i < 50; i++) { try { await (await fetch('http://127.0.0.1:9334/json/version')).json(); break; } catch { await sleep(200); } }
 
 for (const job of jobs) {
@@ -28,7 +30,7 @@ for (const job of jobs) {
     if (pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); }
   });
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
-  await send('Emulation.setDeviceMetricsOverride', { width: 405, height: 720, deviceScaleFactor: 1, mobile: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: SCALE, mobile: false });
   await send('Runtime.enable');
   await send('Page.navigate', { url });
   await sleep(7000);

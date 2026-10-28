@@ -501,6 +501,7 @@ export default class Game extends Phaser.Scene {
     const reward = enemyReward(state.level);
     addAura(reward);
     state.kills++;
+    sdk.submitScore(state.kills);
     state.level++;
     track('kills');
     if (wasBoss) track('boss');

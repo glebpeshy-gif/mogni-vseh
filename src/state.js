@@ -202,10 +202,10 @@ export function leaderboard() {
   const days = Math.max(0, (Date.now() - (state.firstPlay || Date.now())) / 86400000);
   const grow = 1 + 0.05 * days; // боты тоже «качаются» со временем
   const list = names.map((name, k) => {
-    const exp = 1.6 + 8.1 * Math.pow(k / (n - 1), 1.2);
+    const exp = 0.7 + 3.4 * Math.pow(k / (n - 1), 1.2);
     return { name, score: Math.floor(Math.pow(10, exp) * (0.8 + 0.45 * rand()) * grow) };
   });
-  list.push({ name: 'ТЫ', score: Math.floor(state.totalAura), me: true });
+  list.push({ name: 'ТЫ', score: state.kills, me: true });
   list.sort((a, b) => b.score - a.score);
   list.forEach((e, i) => { e.rank = i + 1; });
   return list;

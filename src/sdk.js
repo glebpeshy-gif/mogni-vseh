@@ -204,3 +204,55 @@ export async function cloudLoad() {
 export function cloudSave(data) {
   player?.setData(data, false).catch(() => {});
 }
+
+// ---------- лидерборд ----------
+// В Консоли разработчика нужен лидерборд с техническим названием «mogs» (см. PUBLISHING.md).
+// Очки — сколько соперников замогал игрок за всё время.
+const LB = 'mogs';
+let lbSent = 0;
+let lbTimer = null;
+
+// Есть ли настоящий лидерборд (только на Яндекс Играх)
+export const hasLeaderboard = () => !!ysdk?.leaderboards;
+
+export function isAuthorized() {
+  if (!player) return false;
+  try { return player.isAuthorized ? player.isAuthorized() : player.getMode() !== 'lite'; } catch { return false; }
+}
+
+// Окно входа в аккаунт Яндекса — без входа нельзя попасть в таблицу
+export async function login() {
+  try {
+    await ysdk.auth.openAuthDialog();
+    player = await ysdk.getPlayer({ scopes: false });
+    return true;
+  } catch { return false; }
+}
+
+// Отправить результат (не чаще раза в 2 сек — у Яндекса лимит на запросы)
+export function submitScore(score) {
+  if (!hasLeaderboard() || !isAuthorized() || score <= lbSent || lbTimer) return;
+  lbTimer = setTimeout(async () => {
+    lbTimer = null;
+    try {
+      if (!(await ysdk.isAvailableMethod('leaderboards.setScore'))) return;
+      await ysdk.leaderboards.setScore(LB, score);
+      lbSent = score;
+    } catch {}
+  }, 2000);
+}
+
+// Топ-10 и игрок с соседями: { entries: [{ rank, name, score, me }], myRank }
+export async function leaderboardEntries() {
+  const res = await ysdk.leaderboards.getEntries(LB, { quantityTop: 10, includeUser: isAuthorized(), quantityAround: 2 });
+  const myId = player?.getUniqueID?.();
+  return {
+    myRank: res.userRank || 0,
+    entries: res.entries.map((e) => ({
+      rank: e.rank,
+      name: e.player.publicName || '',
+      score: e.score,
+      me: !!myId && e.player.uniqueID === myId,
+    })),
+  };
+}
