@@ -29,25 +29,25 @@ npm run zip
 | Скриншоты 1080×1920 | `promo/ru/*.png` для русского, `promo/en/*.png` для английского |
 
 **Описание (ru):**
-> Тапай и могай всех подряд! Нормис, отличник, стример, пацанчик, анимешница, блогер, качок, чад —
+> Тапай и могай всех подряд! Нормис, отличник, стример, пацанчик, анимешница, блогер, качок, чад
 > и боссы-гигачады. Прокачивай луксмаксинг: мьюинг, качалку, челюсть, хантер-айз и подписчиков.
 > Расти от нормиса до сигмы, крути колесо ауры, лови золотую ауру, собирай комбо,
 > выполняй задания дня и одевайся в мемный шмот за 💅 вайб. Попади в топ могеров!
 
 **Как играть (ru):**
-> Тапай по сопернику (на компьютере — пробел), чтобы снять его самооценку до нуля.
-> За победы получаешь ✨ ауру — трать её на прокачку (клавиши 1–8). Каждый 10-й соперник — босс на время.
-> С 30 уровня доступно перерождение: начинаешь заново, но навсегда сильнее.
+> Тапай по сопернику (на компьютере жми пробел), чтобы снять его самооценку до нуля.
+> За победы получаешь ✨ ауру, трать её на прокачку (клавиши 1-8). Каждый 10-й соперник это босс, его надо замогать на время.
+> С 30 уровня можно переродиться: начинаешь заново, но навсегда сильнее.
 
 **Description (en):**
-> Tap to mog everyone! Normie, nerd, streamer, gym bro, anime girl, blogger, chad —
+> Tap to mog everyone! Normie, nerd, streamer, gym bro, anime girl, blogger, chad
 > and gigachad bosses. Level up your looksmaxxing: mewing, gym, jawline, hunter eyes and followers.
 > Grow from normie to sigma, spin the aura wheel, catch golden aura, build combos,
 > finish daily tasks and buy meme drip for 💅 vibe. Climb the top moggers board!
 
 **How to play (en):**
-> Tap the opponent (Space on PC) to drain their self-esteem to zero.
-> Wins give ✨ aura — spend it on upgrades (keys 1–8). Every 10th opponent is a timed boss.
+> Tap the opponent (or press Space on PC) to drain their self-esteem to zero.
+> Wins give you ✨ aura, spend it on upgrades (keys 1-8). Every 10th opponent is a boss you have to beat in time.
 > From level 30 you can be reborn: start over, but permanently stronger.
 
 ### Вкладка «Лидерборды»
